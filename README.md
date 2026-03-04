@@ -2,44 +2,44 @@
 Caricamento Telemetria e Gestione Sottoscrizioni
 
 l1-control-plane/  
-  pom.xml  
-  shared/  
-    pom.xml  
-    src/main/java/ai/berticloud/shared/security/MtlsHeaders.java  
-    src/main/java/ai/berticloud/shared/identity/DeviceIdentity.java  
-    src/main/java/ai/berticloud/shared/identity/SanUriParser.java  
-    src/main/java/ai/berticloud/shared/identity/SanUriSelector.java  
-  ingest-service/  
-    pom.xml  
-    Dockerfile  
-    src/main/resources/application.yml  
-    src/main/java/ai/berticloud/ingest/IngestApplication.java  
-    src/main/java/ai/berticloud/ingest/config/CacheConfig.java  
-    src/main/java/ai/berticloud/ingest/auth/DeviceAuthContext.java  
-    src/main/java/ai/berticloud/ingest/auth/AuthzService.java  
-    src/main/java/ai/berticloud/ingest/db/AuthzRepository.java  
-    src/main/java/ai/berticloud/ingest/api/IngestController.java  
-  enrollment-service/  
-    pom.xml  
-    Dockerfile  
-    src/main/resources/application.yml  
-    src/main/java/ai/berticloud/enroll/EnrollmentApplication.java  
-    src/main/java/ai/berticloud/enroll/api/EnrollmentController.java  
-    src/main/java/ai/berticloud/enroll/api/dto/SignCsrRequest.java  
-    src/main/java/ai/berticloud/enroll/api/dto/SignCsrResponse.java  
-    src/main/java/ai/berticloud/enroll/db/EnrollmentRepository.java  
-    src/main/java/ai/berticloud/enroll/security/BootstrapTokenService.java  
-    src/main/java/ai/berticloud/enroll/ca/CaMaterial.java  
-    src/main/java/ai/berticloud/enroll/ca/CaMaterialLoader.java  
-    src/main/java/ai/berticloud/enroll/ca/CsrAndCertService.java  
-    src/main/java/ai/berticloud/enroll/util/CryptoUtil.java  
-  admin-service/  
-    pom.xml  
-    Dockerfile  
-    src/main/resources/application.yml  
-    src/main/java/ai/berticloud/admin/AdminApplication.java  
-    src/main/java/ai/berticloud/admin/api/AdminController.java  
-    src/main/java/ai/berticloud/admin/api/dto/*.java  
-    src/main/java/ai/berticloud/admin/db/AdminRepository.java  
-    src/main/java/ai/berticloud/admin/security/BootstrapTokenIssuer.java  
-    src/main/java/ai/berticloud/admin/util/CryptoUtil.java  
+&nbsp;pom.xml  
+&nbsp;shared/  
+&nbsp;&nbsp;pom.xml  
+&nbsp;&nbsp;src/main/java/ai/berticloud/shared/security/MtlsHeaders.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/shared/identity/DeviceIdentity.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/shared/identity/SanUriParser.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/shared/identity/SanUriSelector.java  
+&nbsp;ingest-service/  
+&nbsp;&nbsp;pom.xml  
+&nbsp;&nbsp;Dockerfile  
+&nbsp;&nbsp;src/main/resources/application.yml  
+&nbsp;&nbsp;src/main/java/ai/berticloud/ingest/IngestApplication.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/ingest/config/CacheConfig.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/ingest/auth/DeviceAuthContext.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/ingest/auth/AuthzService.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/ingest/db/AuthzRepository.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/ingest/api/IngestController.java  
+&nbsp;enrollment-service/  
+&nbsp;&nbsp;pom.xml  
+&nbsp;&nbsp;Dockerfile  
+&nbsp;&nbsp;src/main/resources/application.yml  
+&nbsp;&nbsp;src/main/java/ai/berticloud/enroll/EnrollmentApplication.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/enroll/api/EnrollmentController.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/enroll/api/dto/SignCsrRequest.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/enroll/api/dto/SignCsrResponse.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/enroll/db/EnrollmentRepository.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/enroll/security/BootstrapTokenService.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/enroll/ca/CaMaterial.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/enroll/ca/CaMaterialLoader.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/enroll/ca/CsrAndCertService.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/enroll/util/CryptoUtil.java  
+&nbsp;admin-service/  
+&nbsp;&nbsp;pom.xml  
+&nbsp;&nbsp;Dockerfile  
+&nbsp;&nbsp;src/main/resources/application.yml  
+&nbsp;&nbsp;src/main/java/ai/berticloud/admin/AdminApplication.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/admin/api/AdminController.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/admin/api/dto/*.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/admin/db/AdminRepository.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/admin/security/BootstrapTokenIssuer.java  
+&nbsp;&nbsp;src/main/java/ai/berticloud/admin/util/CryptoUtil.java  
