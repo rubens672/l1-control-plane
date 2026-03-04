@@ -1,6 +1,6 @@
 # l1-control-plane
 Caricamento Telemetria e Gestione Sottoscrizioni
-
+ 
 l1-control-plane/
   pom.xml
   shared/
