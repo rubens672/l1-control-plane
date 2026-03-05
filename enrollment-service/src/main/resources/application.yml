@@ -1,0 +1,22 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: enrollment-service
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql:///${DB_NAME}?cloudSqlInstance=${CLOUDSQL_INSTANCE}&socketFactory=com.google.cloud.sql.postgres.SocketFactory
+    username: ${DB_USER}
+    password: ${DB_PASS}
+
+app:
+  bootstrap:
+    hmacKeyBase64: ${BOOTSTRAP_HMAC_KEY_BASE64}
+  ca:
+    # Secret Manager resource ids (version latest) o direttamente value via env
+    issuingKeySecret: ${CA_ISSUING_KEY_SECRET}     # es: projects/<p>/secrets/issuingCA-key/versions/latest
+    issuingCertSecret: ${CA_ISSUING_CERT_SECRET}   # es: projects/<p>/secrets/issuingCA-cert/versions/latest
+    chainSecret: ${CA_CHAIN_SECRET}                # opzionale; se non c'è, usa issuingCert come chain
+  cert:
+    validityDays: 365

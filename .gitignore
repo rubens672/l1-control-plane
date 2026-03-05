@@ -1,0 +1,73 @@
+# ===== Maven / Java build outputs =====
+target/
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+
+# ===== Logs =====
+*.log
+logs/
+**/logs/
+
+# ===== IDEs =====
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# NetBeans
+nbproject/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# VS Code
+.vscode/
+
+# ===== OS files =====
+.DS_Store
+Thumbs.db
+
+# ===== Spring Boot / local configs =====
+# Non committare segreti o override locali
+application-local.yml
+application-local.yaml
+application-dev.yml
+application-dev.yaml
+
+# ===== Environment / secrets =====
+.env
+.env.*
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.truststore
+secrets/
+**/secrets/
+
+# ===== Test / coverage =====
+# (se usi JaCoCo o simili)
+jacoco.exec
+**/jacoco.exec
+coverage/
+**/coverage/
+
+# ===== Misc =====
+*.tmp
+*.swp
+*.swo

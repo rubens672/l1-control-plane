@@ -1,0 +1,17 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: admin-service
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql:///${DB_NAME}?cloudSqlInstance=${CLOUDSQL_INSTANCE}&socketFactory=com.google.cloud.sql.postgres.SocketFactory
+    username: ${DB_USER}
+    password: ${DB_PASS}
+
+app:
+  bootstrap:
+    tokenTtlMinutes: 60
+    # chiave HMAC (base64) - in prod mettila in Secret Manager e inietti via env
+    hmacKeyBase64: ${BOOTSTRAP_HMAC_KEY_BASE64}

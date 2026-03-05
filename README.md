@@ -1,6 +1,50 @@
 # l1-control-plane
 Caricamento Telemetria e Gestione Sottoscrizioni
 
+# Creazione alberatura maven
+#!/usr/bin/env bash
+set -euo pipefail
+
+BASE="src/main/java/ai/berticloud/shared"
+
+mkdir -p src/{main,test}/{java,resources}
+mkdir -p "$BASE"/{security,identity}
+
+touch src/main/resources/application.yml
+
+touch \
+  pom.xml \
+  "$BASE/security/MtlsHeaders.java" \
+  "$BASE/identity/DeviceIdentity.java" \
+  "$BASE/identity/SanUriParser.java" \
+  "$BASE/identity/SanUriSelector.java"
+
+echo "Project structure created."
+
+# elimina gli a capo \r
+sed -i 's/\r$//' init_maven.sh
+
+#Nel tuo repo Git aggiungi .gitattributes
+*.sh text eol=lf  
+
+#Variabili env per Cloud Run (minime)
+
+Tutti i servizi:  
+DB_NAME  
+DB_USER  
+DB_PASS  
+CLOUDSQL_INSTANCE (project:region:instance)  
+
+ingest-service:  
+PUBSUB_TOPIC (nome topic)  
+
+admin-service + enrollment-service:  
+BOOTSTRAP_HMAC_KEY_BASE64 (base64 di 32 bytes random)  
+
+enrollment-service:  
+CA_ISSUING_KEY_SECRET (Secret Manager resource)  
+CA_ISSUING_CERT_SECRET  
+CA_CHAIN_SECRET (opzionale)  
 
 
 l1-control-plane/  
