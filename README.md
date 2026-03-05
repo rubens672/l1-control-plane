@@ -1,4 +1,4 @@
-# BertiCloud AI -- L1 Control Plane
+# BertiCloud AI - L1 Control Plane
 
 MVP Control Plane per piattaforma **IoT / Video Surveillance Edge**
 basata su:
