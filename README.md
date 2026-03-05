@@ -1,7 +1,7 @@
 # l1-control-plane
 Caricamento Telemetria e Gestione Sottoscrizioni
 
-# Creazione alberatura maven
+## Creazione alberatura maven
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -21,13 +21,13 @@ touch \
 
 echo "Project structure created."
 
-# elimina gli a capo \r
+## elimina gli a capo \r
 sed -i 's/\r$//' init_maven.sh
 
-#Nel tuo repo Git aggiungi .gitattributes
+## Nel tuo repo Git aggiungi .gitattributes
 *.sh text eol=lf  
 
-#Variabili env per Cloud Run (minime)
+## Variabili env per Cloud Run (minime)
 
 Tutti i servizi:  
 DB_NAME  
@@ -46,7 +46,7 @@ CA_ISSUING_KEY_SECRET (Secret Manager resource)
 CA_ISSUING_CERT_SECRET  
 CA_CHAIN_SECRET (opzionale)  
 
-
+## alberatura
 l1-control-plane/  
 &nbsp;pom.xml  
 &nbsp;shared/  
