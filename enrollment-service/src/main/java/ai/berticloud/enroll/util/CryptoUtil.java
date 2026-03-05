@@ -4,6 +4,26 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.MessageDigest;
 
+/*
+ * Copyright (c) 2026 Berti AI & Cloud Architecture. All rights reserved.
+ */
+
+/**
+ * Utility crittografiche per enrollment-service.
+ *
+ * FUNZIONI:
+ * - HMAC-SHA256 hex: per verificare bootstrap token (server-side shared secret).
+ * - constant-time compare: evita timing leak su confronto hash.
+ * - SHA-256 fingerprint: calcola fingerprint del certificato (DER) per persisterlo nel DB.
+ *
+ * NOTE:
+ * - fingerprint deve essere calcolato sul certificato in formato DER (cert.getEncoded()).
+ * - Il confronto constant-time usa MessageDigest.isEqual.
+ *
+ * @author Antonio Berti
+ * @version 1.0
+ * @since 4 March 2026
+ */
 public final class CryptoUtil {
   private CryptoUtil() {}
 

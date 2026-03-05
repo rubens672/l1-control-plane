@@ -17,6 +17,48 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+/*
+ * Copyright (c) 2026 Berti AI & Cloud Architecture. All rights reserved.
+ */
+
+/**
+ * REST endpoint principale dell'Ingest Service.
+ *
+ * ENDPOINT:
+ * - POST /v1/telemetry
+ *
+ * SECURITY MODEL (L1):
+ * - Questo endpoint accetta SOLO richieste con mTLS verificato dal Load Balancer.
+ * - Non ci fidiamo di tenantId/siteId/deviceId nel body JSON.
+ * - Deriviamo l'identità del device dal SAN URI del certificato:
+ *     urn:berticloudai:tenant:<TENANT>:site:<SITE>:device:<DEVICE>
+ *
+ * INGRESSO:
+ * - Headers mTLS (iniettati dal LB):
+ *   - client_cert_present
+ *   - client_cert_chain_verified
+ *   - client_cert_sha256_fingerprint
+ *   - client_cert_uri_sans
+ * - Body: JSON telemetria (raw)
+ *
+ * USCITA:
+ * - Pub/Sub publish (topic globale) con:
+ *   - data = raw JSON body
+ *   - attributes = tenantId, siteId, deviceId, eventType, schemaVersion
+ *
+ * REJECT RULES:
+ * - 401: mTLS non presente o non verificato
+ * - 400: SAN mancante/invalid, oppure mismatch tra body.deviceId/siteId e SAN
+ * - 403: authz fallita (device non valido, fingerprint mismatch, subscription scaduta, ecc.)
+ *
+ * NOTE OPERATIVE:
+ * - Il publish è "fire and forget" (pubSub.publish) in L1.
+ * - last_seen_at viene aggiornato best-effort in Cloud SQL.
+ *
+ * @author Antonio Berti
+ * @version 1.0
+ * @since 4 March 2026
+ */
 @RestController
 @RequestMapping("/v1")
 public class IngestController {
@@ -38,19 +80,23 @@ public class IngestController {
   public ResponseEntity<?> postTelemetry(@RequestHeader Map<String, String> headers,
                                         @RequestBody String body) throws Exception {
 
+    // 1) Guardrail mTLS: se LB non ha validato il client cert, non accettiamo la richiesta.
     boolean present = MtlsHeaders.isTrue(MtlsHeaders.getIgnoreCase(headers, MtlsHeaders.PRESENT));
     boolean verified = MtlsHeaders.isTrue(MtlsHeaders.getIgnoreCase(headers, MtlsHeaders.VERIFIED));
     if (!present || !verified) return ResponseEntity.status(401).body(Map.of("error","mtls_required"));
 
+    // 2) Estraiamo fingerprint + SANs dal header (iniettati dal LB).
     String fp = MtlsHeaders.getIgnoreCase(headers, MtlsHeaders.FP_SHA256);
     String sansHeader = MtlsHeaders.getIgnoreCase(headers, MtlsHeaders.URI_SANS);
 
+    // 3) Seleziona la SAN URI "nostra" e parsala in tenant/site/device.
     String deviceUrn = SanUriSelector.pickDeviceUrn(sansHeader);
     DeviceIdentity id = SanUriParser.parse(deviceUrn);
 
+    // 4) Parse JSON: serve per (a) reject mismatch e (b) estrarre eventType/schemaVersion per attributi Pub/Sub.
     JsonNode root = om.readTree(body);
 
-    // reject se body prova a “dichiarare” un device/site diverso dal SAN
+    // 5) Reject mismatch: se il body dichiara deviceId/siteId e non combacia con SAN -> richiesta sospetta.
     String bodyDeviceId = textOrNull(root.get("deviceId"));
     String bodySiteId = textOrNull(root.get("siteId"));
     if (bodyDeviceId != null && !bodyDeviceId.equals(id.deviceId()))
@@ -58,9 +104,11 @@ public class IngestController {
     if (bodySiteId != null && !bodySiteId.equals(id.siteId()))
       return ResponseEntity.badRequest().body(Map.of("error","siteId_mismatch"));
 
+    // 6) AuthZ: cache -> DB join fallback. Qui si validano subscription/status/fingerprint.
     String key = id.tenantId()+"|"+id.siteId()+"|"+id.deviceId();
     var ctx = authz.authorizeOrThrow(key, id.tenantId(), id.siteId(), id.deviceId(), fp);
 
+    // 7) Attributi Pub/Sub: tenant/site/device sempre dalla identity forte; eventType/schemaVersion dal payload.
     String eventType = textOrNull(root.get("eventType"));
     String schemaVersion = textOrNull(root.get("schemaVersion"));
 
@@ -71,11 +119,13 @@ public class IngestController {
     if (eventType != null) attrs.put("eventType", eventType);
     if (schemaVersion != null) attrs.put("schemaVersion", schemaVersion);
 
+    // 8) Publish su topic globale. Il consumer (Dataflow/BigQuery) userà attributes per routing/partitioning.
     pubSub.publish(topic, com.google.pubsub.v1.PubsubMessage.newBuilder()
         .setData(ByteString.copyFrom(body, StandardCharsets.UTF_8))
         .putAllAttributes(attrs)
         .build());
 
+    // 9) Aggiorna last_seen: utile per dashboard e health. Best-effort (se fallisce non blocchiamo ingest).
     repo.touchLastSeen(ctx.deviceId());
     return ResponseEntity.accepted().build();
   }

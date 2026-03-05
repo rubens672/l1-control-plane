@@ -12,6 +12,30 @@ import java.io.StringReader;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 
+/*
+ * Copyright (c) 2026 Berti AI & Cloud Architecture. All rights reserved.
+ */
+
+/**
+ * Carica il materiale CA da Secret Manager.
+ *
+ * INPUT (Secret Manager):
+ * - issuingKeySecret: PEM della private key della issuing CA
+ * - issuingCertSecret: PEM del certificato della issuing CA
+ * - chainSecret (opzionale): PEM della chain (intermediate/root). Se assente usa issuingCert.
+ *
+ * PERCHÉ Secret Manager:
+ * - Chiave CA è un segreto ad alta criticità.
+ * - Evitiamo file nel container e riduciamo rischio leak.
+ *
+ * NOTE OPERATIVE:
+ * - Questo loader è chiamato per ogni richiesta di enrollment nel codice L1.
+ *   In L2 puoi aggiungere caching in memoria del materiale CA (con TTL/rotation).
+ *
+ * @author Antonio Berti
+ * @version 1.0
+ * @since 4 March 202
+ */
 @Service
 public class CaMaterialLoader {
   private final SecretManagerTemplate sm;
@@ -29,6 +53,9 @@ public class CaMaterialLoader {
     this.chainSecret = chainSecret;
   }
 
+  /**
+   * Carica key/cert/chain dal Secret Manager e li converte in oggetti Java.
+   */
   public CaMaterial load() {
     String keyPem = sm.getSecretString(keySecret);
     String certPem = sm.getSecretString(certSecret);
@@ -39,6 +66,12 @@ public class CaMaterialLoader {
     return new CaMaterial(key, cert, chainPem);
   }
 
+  /**
+   * Parse PEM private key.
+   * Supporta:
+   * - PKCS#8 (PrivateKeyInfo)
+   * - PEMKeyPair (formati classici OpenSSL)
+   */
   private static PrivateKey parsePrivateKey(String pem) {
     try (PEMParser p = new PEMParser(new StringReader(pem))) {
       Object o = p.readObject();
@@ -52,6 +85,9 @@ public class CaMaterialLoader {
     }
   }
 
+  /**
+   * Parse PEM certificate in X509Certificate.
+   */
   private static X509Certificate parseCert(String pem) {
     try (PEMParser p = new PEMParser(new StringReader(pem))) {
       Object o = p.readObject();

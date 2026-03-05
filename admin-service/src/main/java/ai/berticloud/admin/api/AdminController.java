@@ -7,6 +7,39 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/*
+ * Copyright (c) 2026 Berti AI & Cloud Architecture. All rights reserved.
+ */
+
+/**
+ * REST Controller del control-plane (admin-service).
+ *
+ * ENDPOINT PRINCIPALI (L1):
+ * - POST /v1/admin/tenants
+ * - POST /v1/admin/subscriptions
+ * - POST /v1/admin/sites
+ * - POST /v1/admin/devices
+ * - POST /v1/admin/devices/{deviceId}:bootstrapToken
+ *
+ * FLUSSO LOGICO:
+ * 1) l'admin crea tenant/subscription/site/device (device = PENDING)
+ * 2) l'admin genera bootstrap token per il device (one-time, TTL 1 ora)
+ * 3) il cliente usa quel token per chiamare enrollment-service e ottenere il cert mTLS
+ *
+ * TRUST & SECURITY:
+ * - Queste API sono "privilegiate": devono essere protette (IAM / auth webapp / IP allowlist / etc).
+ * - Il token bootstrap NON viene mai salvato in chiaro:
+ *   - DB salva solo bootstrap_token_hash (HMAC)
+ *   - response contiene token plaintext per consegna al cliente
+ *
+ * NOTE OPERATIVE:
+ * - Per semplicità L1 usiamo "insert/upsert" con JdbcTemplate in repository.
+ * - La gestione di ruoli admin/console verrà raffinata quando arriva la webapp.
+ *
+ * @author Antonio Berti
+ * @version 1.0
+ * @since 4 March 2026
+ */
 @RestController
 @RequestMapping("/v1/admin")
 public class AdminController {
@@ -18,30 +51,63 @@ public class AdminController {
     this.issuer = issuer;
   }
 
+  /**
+   * Crea un tenant (anagrafica cliente).
+   * In L1 setta status = ACTIVE di default.
+   */
   @PostMapping("/tenants")
   public ResponseEntity<?> createTenant(@Valid @RequestBody CreateTenantRequest r) {
     repo.createTenant(r.tenantId(), r.name(), r.plan());
     return ResponseEntity.ok().build();
   }
 
+  /**
+   * Crea/aggiorna la subscription del tenant (contratto/abbonamento).
+   * È l'oggetto principale che governa validità e limiti (max devices, features).
+   */
   @PostMapping("/subscriptions")
   public ResponseEntity<?> upsertSubscription(@Valid @RequestBody CreateSubscriptionRequest r) {
     repo.upsertSubscription(r.tenantId(), r.status(), r.validFrom(), r.validTo(), r.maxDevices());
     return ResponseEntity.ok().build();
   }
 
+  /**
+   * Crea un site (installazione fisica/cliente).
+   * Un tenant può avere più site.
+   */
   @PostMapping("/sites")
   public ResponseEntity<?> createSite(@Valid @RequestBody CreateSiteRequest r) {
     repo.createSite(r.siteId(), r.tenantId(), r.name(), r.timezone(), r.status());
     return ResponseEntity.ok().build();
   }
 
+  /**
+   * Registra un device nel control-plane.
+   *
+   * NOTE:
+   * - Il device nasce in stato PENDING perché non ha ancora un certificato mTLS firmato.
+   * - L'enrollment-service, dopo la firma del CSR, porterà il device ad ACTIVE.
+   */
   @PostMapping("/devices")
   public ResponseEntity<?> createDevice(@Valid @RequestBody CreateDeviceRequest r) {
     repo.createDevicePending(r.deviceId(), r.tenantId(), r.siteId(), r.model());
     return ResponseEntity.ok().build();
   }
 
+  /**
+   * Emette un bootstrap token one-time per un device PENDING.
+   *
+   * OUTPUT:
+   * - Ritorna token plaintext (da consegnare al cliente).
+   * - Ritorna expiresAt.
+   *
+   * DB:
+   * - Salva SOLO l'hash HMAC del token + expiry sul device.
+   *
+   * SICUREZZA:
+   * - Se qualcuno ruba il DB, non ottiene il token plaintext (solo hash).
+   * - Il token è temporaneo: TTL ~60 minuti (config).
+   */
   @PostMapping("/devices/{deviceId}:bootstrapToken")
   public ResponseEntity<BootstrapTokenResponse> issueBootstrap(@PathVariable String deviceId) {
     var t = issuer.issueOneTimeToken(deviceId);

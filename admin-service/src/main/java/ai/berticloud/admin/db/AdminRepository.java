@@ -6,6 +6,33 @@ import org.springframework.stereotype.Repository;
 import java.sql.Timestamp;
 import java.time.Instant;
 
+/*
+ * Copyright (c) 2026 Berti AI & Cloud Architecture. All rights reserved.
+ */
+
+/**
+ * Repository JDBC per il control-plane DB (Cloud SQL Postgres).
+ *
+ * RUOLO:
+ * - Implementa le operazioni DB necessarie a L1:
+ *   - create tenant
+ *   - upsert subscription
+ *   - create site
+ *   - create device (PENDING)
+ *   - set bootstrap token hash + expiry sul device
+ *
+ * PERCHÉ JdbcTemplate:
+ * - L1 vuole "ruote su strada": semplicità, trasparenza, zero magia.
+ * - Qui stiamo principalmente facendo insert/update semplici e una upsert.
+ *
+ * NOTE DI INTEGRITÀ:
+ * - La validazione di FK/PK è demandata a Postgres (vincoli).
+ * - Lo status PENDING→ACTIVE è gestito dall'enrollment-service.
+ *
+ * @author Antonio Berti
+ * @version 1.0
+ * @since 4 March 2026
+ */
 @Repository
 public class AdminRepository {
   private final JdbcTemplate jdbc;
@@ -14,6 +41,7 @@ public class AdminRepository {
     this.jdbc = jdbc;
   }
 
+  /** Crea tenant con status ACTIVE di default (L1). */
   public void createTenant(String tenantId, String name, String plan) {
     jdbc.update("""
       INSERT INTO control_plane.tenants(tenant_id, name, status, plan, created_at, updated_at)
@@ -21,6 +49,13 @@ public class AdminRepository {
       """, tenantId, name, plan);
   }
 
+  /**
+   * Crea o aggiorna subscription del tenant.
+   *
+   * NOTE:
+   * - ON CONFLICT(tenant_id): un tenant ha una subscription "corrente" in L1.
+   * - In L2 potresti avere history contratti o più piani.
+   */
   public void upsertSubscription(String tenantId, String status, Instant validFrom, Instant validTo, int maxDevices) {
     jdbc.update("""
       INSERT INTO control_plane.subscriptions(tenant_id, status, valid_from, valid_to, max_devices, features, updated_at)
@@ -31,6 +66,7 @@ public class AdminRepository {
       """, tenantId, status, Timestamp.from(validFrom), Timestamp.from(validTo), maxDevices);
   }
 
+  /** Crea site collegato a tenant. */
   public void createSite(String siteId, String tenantId, String name, String timezone, String status) {
     jdbc.update("""
       INSERT INTO control_plane.sites(site_id, tenant_id, name, timezone, status, created_at)
@@ -38,6 +74,13 @@ public class AdminRepository {
       """, siteId, tenantId, name, timezone, status == null ? "ACTIVE" : status);
   }
 
+  /**
+   * Registra un device nel control-plane in stato PENDING.
+   *
+   * PERCHÉ PENDING:
+   * - Il device non ha ancora un certificato client firmato.
+   * - Finché non completa enrollment CSR, non può inviare telemetria (ingest rifiuta).
+   */
   public void createDevicePending(String deviceId, String tenantId, String siteId, String model) {
     jdbc.update("""
       INSERT INTO control_plane.devices(
@@ -49,6 +92,17 @@ public class AdminRepository {
       """, deviceId, tenantId, siteId, model);
   }
 
+  /**
+   * Salva bootstrap token (hash + expiry) sul record device PENDING.
+   *
+   * INPUT:
+   * - tokenHashHex: HMAC(tokenPlain)
+   * - expiresAt: scadenza token
+   *
+   * NOTE DI SICUREZZA:
+   * - tokenPlain NON è persistito, solo hash.
+   * - Condizione status='PENDING' evita rigenerazione su device già attivi (policy L1).
+   */
   public void setBootstrapToken(String deviceId, String tokenHashHex, Instant expiresAt) {
     jdbc.update("""
       UPDATE control_plane.devices
