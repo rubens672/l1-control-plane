@@ -10,9 +10,8 @@ BASE="src/main/java/ai/berticloud/shared"
 mkdir -p src/{main,test}/{java,resources}
 mkdir -p "$BASE"/{security,identity}
 
-touch src/main/resources/application.yml
-
 touch \
+  src/main/resources/application.yml \
   pom.xml \
   "$BASE/security/MtlsHeaders.java" \
   "$BASE/identity/DeviceIdentity.java" \
