@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5432/subscript_manage_db_test
+    username: postgres
+    password: ${sm://projects/782332691073/secrets/SUBSCRIBE_MANAGER_PASSW_TEST/versions/3}
+    driver-class-name: org.postgresql.Driver
+
+
+# Disabilita Cloud SQL autoconfigure per i test
+  cloud:
+    gcp:
+      sql:
+        enabled: false
