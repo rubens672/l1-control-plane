@@ -14,9 +14,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.sql.Timestamp;
+import java.time.*;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -27,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 */
 @JdbcTest
 @ActiveProfiles("test")
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public class CloudSqlPostgresTest {
 
     @Autowired
@@ -53,17 +51,14 @@ public class CloudSqlPostgresTest {
         //jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS unitTestSchema.test_records (id SERIAL PRIMARY KEY, message VARCHAR(255), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
     }
 
+    //TODO test da sterminare in esercizio
     @Test
-        // ← forza il commit invece del rollback
     void checkConfig() {
         System.out.println("DB URL: " + env.getProperty("spring.datasource.url"));
         System.out.println("DB USER: " + env.getProperty("spring.datasource.username"));
-    }
-
-    @Test
-    void checkPassword() {
         System.out.println("PASSWORD LETTA: " + env.getProperty("spring.datasource.password"));
     }
+
 
     @Test
     //@Commit  // ← forza il commit invece del rollback
@@ -87,10 +82,44 @@ public class CloudSqlPostgresTest {
     }
 
 
-    public void setBootstrapToken(){
+    public void setLocalDateTime(){
         Instant expiresAt = LocalDateTime
                 .of(2026, 12, 31, 23, 59)
                 .atZone(ZoneId.of("Europe/Rome"))
+                .toInstant();
+    }
+
+    public void setLocalDate(){
+        //Instant -> TIMESTAMP WITH TIME ZONE - in PostgreSQL abbreviato come: timestamptz
+        //LocalDate -> DATE
+        //LocalDateTime -> TIMESTAMP
+        //OffsetDateTime -> data + ora + offset dal tempo UTC, cioè include quanto sei distante da UTC
+
+        Instant now = Instant.now();
+
+        Instant createdAt = now;
+        Instant updatedAt = now;
+        Instant lastSeenAt = now;
+        Instant expiresAt = now.plus(Duration.ofDays(30));
+
+        Instant instant = Instant.parse("2026-03-07T18:00:00Z");
+
+        Timestamp ts = Timestamp.from(instant);
+        Instant i = ts.toInstant();
+
+        Timestamp.from(Instant.now());
+        LocalDate expiryDate = LocalDate.of(2026, 3, 10);
+        LocalDateTime expiryDateDT = LocalDateTime.of(2026, 3, 10, 16, 43, 21);
+        OffsetDateTime nowOFS = OffsetDateTime.now(); // risultato: 2026-03-07T19:23:10.123+01:00
+
+        //Esempio: inizio giornata in UTC
+        Instant expiresAt3 = LocalDate.of(2026, 3, 10)
+                .atStartOfDay(ZoneOffset.UTC)
+                .toInstant();
+
+        //Esempio: inizio giornata in Europe/Rome
+        Instant expiresAt4 = LocalDate.of(2026, 3, 10)
+                .atStartOfDay(ZoneId.of("Europe/Rome"))
                 .toInstant();
     }
 
