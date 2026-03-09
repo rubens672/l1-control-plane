@@ -4,6 +4,21 @@ Caricamento Telemetria e Gestione Sottoscrizioni
 ### compilazione maven
 mvn clean install -DskipTests
 
+### controllo
+gcloud auth list
+
+### Re-autentica gcloud CLI
+gcloud auth login --update-adc
+
+### login gcp
+gcloud auth login admin@berticloud.ai
+
+### settare il project
+gcloud config set project mosqhealthagent
+
+### avvio della connessione proxy x Cloud Sql
+./cloud-sql-proxy mosqhealthagent:europe-west12:control-plan-gateway-db --private-ip &
+
 ## Creazione alberatura maven
 #!/usr/bin/env bash
 set -euo pipefail
