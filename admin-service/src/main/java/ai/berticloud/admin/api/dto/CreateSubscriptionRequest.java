@@ -27,7 +27,7 @@ import java.time.Instant;
 public record CreateSubscriptionRequest(
     @NotBlank String tenantId,  // FK verso tenants
     @NotBlank String status,    // es: ACTIVE / PAST_DUE / CANCELED / EXPIRED
-    @NotNull Instant validFrom,
-    @NotNull Instant validTo,
+    @NotNull Instant validFrom, // viene serializzato/deserializzato nel formato ISO-8601 UTC
+    @NotNull Instant validTo,   // nel formato YYYY-MM-DDTHH:mm:ssZ . es. 2026-03-10T18:00:00Z
     @NotNull Integer maxDevices
 ) {}

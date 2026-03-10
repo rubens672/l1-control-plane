@@ -53,25 +53,32 @@ public class AdminRepositoryTest {
     String nameSite = "Casa";
     String timezone = "Europe/Rome";
     final String ACTIVE = "ACTIVE";
+    String deviceId = "rpi-123";
+    String model = "modello giuditta";
 
     @Test
     //@Commit
     //@Order(1)
-    void createTenantTest(){
+    void createTenant(){
         assertDoesNotThrow(() -> repo.createTenant(tenantId, name, plan));
     }
 
     @Test
     void upsertSubscription(){
         repo.createTenant(tenantId, name, plan);
-
         assertDoesNotThrow(() -> repo.upsertSubscription(tenantId, ACTIVE, validFrom, validTo, maxDevices));
     }
 
     @Test
     void createSite(){
         repo.createTenant(tenantId, name, plan);
-
         assertDoesNotThrow(() -> repo.createSite(siteId, tenantId, nameSite, timezone, ACTIVE));
+    }
+
+    @Test
+    public void createDevicePending(){
+        repo.createTenant(tenantId, name, plan);
+        repo.createSite(siteId, tenantId, nameSite, timezone, ACTIVE);
+        assertDoesNotThrow(() -> repo.createDevicePending(deviceId, tenantId, siteId, model));
     }
 }

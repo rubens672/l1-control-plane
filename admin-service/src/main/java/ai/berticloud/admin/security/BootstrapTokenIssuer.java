@@ -40,13 +40,21 @@ import java.util.Base64;
 public class BootstrapTokenIssuer {
   private final byte[] hmacKey;
   private final long ttlMinutes;
-
+  private final String enrollmentUrl;
+/*
+* comando per la creazione randomica della chiave:
+* openssl rand -base64 32
+ */
   public BootstrapTokenIssuer(
       @Value("${app.bootstrap.hmacKeyBase64}") String hmacKeyBase64,
-      @Value("${app.bootstrap.tokenTtlMinutes}") long ttlMinutes
+      @Value("${app.bootstrap.tokenTtlMinutes}") long ttlMinutes,
+      @Value("${app.bootstrap.enrollmentUrl}") String enrollmentUrl
   ) {
+    System.out.println("hmacKeyBase64: " + hmacKeyBase64);
+    System.out.println("enrollmentUrl: " + enrollmentUrl);
     this.hmacKey = Base64.getDecoder().decode(hmacKeyBase64);
     this.ttlMinutes = ttlMinutes;
+    this.enrollmentUrl = enrollmentUrl;
   }
 
   /**
@@ -60,7 +68,7 @@ public class BootstrapTokenIssuer {
     String token = CryptoUtil.randomTokenUrlSafe(32); // ~256 bit
     String hashHex = CryptoUtil.hmacSha256Hex(hmacKey, token);
     Instant exp = Instant.now().plus(ttlMinutes, ChronoUnit.MINUTES);
-    return new IssuedToken(deviceId, token, hashHex, exp);
+    return new IssuedToken(deviceId, token, hashHex, exp, enrollmentUrl);
   }
 
   /**
@@ -68,5 +76,5 @@ public class BootstrapTokenIssuer {
    * - tokenPlain: solo response admin (non persistito)
    * - tokenHashHex + expiresAt: persistiti sul record device
    */
-  public record IssuedToken(String deviceId, String tokenPlain, String tokenHashHex, Instant expiresAt) {}
+  public record IssuedToken(String deviceId, String tokenPlain, String tokenHashHex, Instant expiresAt, String enrollmentUrl) {}
 }

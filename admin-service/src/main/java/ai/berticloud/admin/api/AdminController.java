@@ -36,6 +36,38 @@ import org.springframework.web.bind.annotation.*;
  * - Per semplicità L1 usiamo "insert/upsert" con JdbcTemplate in repository.
  * - La gestione di ruoli admin/console verrà raffinata quando arriva la webapp.
  *
+ *
+ * File di provisioning
+ *
+ * L’admin genera un piccolo file json, ad esempio:
+ *
+ * {
+ *   "deviceId": "dev-001",
+ *   "tenantId": "tnt-001",
+ *   "enrollmentUrl": "https://enroll.example.com",
+ *   "bootstrapToken": "CqSBU6Zr0P8BlEvqVTI1Kd6n0YO90zQZXdX7cbakevo",
+ *   "expiresAt": "2026-03-10T18:00:00Z"
+ * }
+ *
+ * questo file è copiato su USB e importato nel device al primo avvio
+ *
+ *
+ * Come fa il device a usare il bootstrapToken?
+ *
+ * Il device deve avere un piccolo bootstrap agent già preinstallato.
+ * Quel componente fa questo:
+ * legge deviceId e bootstrapToken
+ * chiama enrollment-service via HTTPS
+ * invia token + device metadata minimi
+ * se token valido e device PENDING, il server:
+ * marca il token come usato
+ * emette cert + key oppure CSR flow
+ * porta il device a stato ACTIVE o ENROLLED
+ * il device salva il materiale mTLS in una directory sicura
+ * da quel momento comunica solo con certificato, non più con token
+ *
+ * //urn:berticloudai:tenant:tnt-001:site:site-roma-001:device:rpi-123
+ *
  * @author Antonio Berti
  * @version 1.0
  * @since 4 March 2026
@@ -109,9 +141,9 @@ public class AdminController {
    * - Il token è temporaneo: TTL ~60 minuti (config).
    */
   @PostMapping("/devices/{deviceId}:bootstrapToken")
-  public ResponseEntity<BootstrapTokenResponse> issueBootstrap(@PathVariable String deviceId) {
+  public ResponseEntity<BootstrapTokenResponse> issueBootstrap(@PathVariable("deviceId") String deviceId) {
     var t = issuer.issueOneTimeToken(deviceId);
     repo.setBootstrapToken(deviceId, t.tokenHashHex(), t.expiresAt());
-    return ResponseEntity.ok(new BootstrapTokenResponse(deviceId, t.tokenPlain(), t.expiresAt()));
+    return ResponseEntity.ok(new BootstrapTokenResponse(deviceId, t.tokenPlain(), t.enrollmentUrl(), t.expiresAt()));
   }
 }

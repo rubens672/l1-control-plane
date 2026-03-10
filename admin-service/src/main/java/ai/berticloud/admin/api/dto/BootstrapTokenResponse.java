@@ -29,5 +29,6 @@ import java.time.Instant;
 public record BootstrapTokenResponse(
     String deviceId,
     String bootstrapToken,  // segreto temporaneo one-time
+    String enrollmentUrl,
     Instant expiresAt
 ) {}
