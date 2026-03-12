@@ -1,0 +1,75 @@
+package ai.berticloud.admin.db;
+
+import org.junit.jupiter.api.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
+
+import java.time.Duration;
+import java.time.Instant;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
+/**
+ * Test // ESEMPIO
+ * void createTenantTest() {
+ *     Tenant result = repo.createTenant(tenantId, name, plan);
+ *     assertNotNull(result);
+ *     assertEquals(tenantId, result.getTenantId());
+ *     assertEquals(name, result.getName());
+ *     assertNotNull(count);
+ *     assertDoesNotThrow(() -> repo.createTenant(tenantId, name, plan));
+ *     //urn:berticloudai:tenant:tnt-001:site:site-roma-001:device:rpi-123
+ * }
+ */
+@JdbcTest
+@ActiveProfiles("test")
+@Import(AdminRepository.class)
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+public class AdminRepositoryTest {
+
+    @Autowired
+    AdminRepository repo;
+
+    Instant now = Instant.now();
+    String tenantId = "tnt-001";
+    String name = "Arnolfo Ristorante, l'arte del gusto in Toscana";
+    String plan = "BASE";
+    Instant validFrom = now;
+    Instant validTo = now.plus(Duration.ofDays(30));
+    int maxDevices = 2;
+    String siteId = "site-roma-001";
+    String nameSite = "Casa";
+    String timezone = "Europe/Rome";
+    final String ACTIVE = "ACTIVE";
+    String deviceId = "rpi-123";
+    String model = "modello giuditta";
+
+    @Test
+    //@Commit
+    //@Order(1)
+    void createTenant(){
+        assertDoesNotThrow(() -> repo.createTenant(tenantId, name, plan));
+    }
+
+    @Test
+    void upsertSubscription(){
+        repo.createTenant(tenantId, name, plan);
+        assertDoesNotThrow(() -> repo.upsertSubscription(tenantId, ACTIVE, validFrom, validTo, maxDevices));
+    }
+
+    @Test
+    void createSite(){
+        repo.createTenant(tenantId, name, plan);
+        assertDoesNotThrow(() -> repo.createSite(siteId, tenantId, nameSite, timezone, ACTIVE));
+    }
+
+    @Test
+    public void createDevicePending(){
+        repo.createTenant(tenantId, name, plan);
+        repo.createSite(siteId, tenantId, nameSite, timezone, ACTIVE);
+        assertDoesNotThrow(() -> repo.createDevicePending(deviceId, tenantId, siteId, model));
+    }
+}
