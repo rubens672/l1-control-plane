@@ -211,3 +211,15 @@ l1-control-plane/  <br>
 &nbsp;&nbsp;src/main/java/ai/berticloud/admin/db/AdminRepository.java  
 &nbsp;&nbsp;src/main/java/ai/berticloud/admin/security/BootstrapTokenIssuer.java  
 &nbsp;&nbsp;src/main/java/ai/berticloud/admin/util/CryptoUtil.java  
+
+## Eventuali problemi su IntelliJ
+Clicca Advanced Settings (menzionato nel messaggio blu)  
+Disabilita "Open natively"  
+Riapri il progetto  
+
+Se non trovi l'opzione  
+Vai su File → Settings → Advanced Settings e cerca WSL — dovrebbe esserci un'opzione tipo:  
+
+"Open projects in WSL natively instead of using Remote Development"  
+
+Disabilitala, poi riprova ad aprire il progetto da Remote Development   → WSL.
