@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: sm://
   # dice a Spring di non sostituire il tuo datasource configurato con uno in-memory
   test:
     database:
@@ -9,9 +11,11 @@ spring:
     password: Esscher1!
     driver-class-name: org.postgresql.Driver
 
-
-# Disabilita Cloud SQL autoconfigure per i test
   cloud:
     gcp:
+      # Disabilita Cloud SQL autoconfigure per i test
       sql:
+        enabled: false
+      # Assicurati che Secret Manager sia abilitato anche in test
+      secretmanager:
         enabled: false

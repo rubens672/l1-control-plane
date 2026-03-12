@@ -8,11 +8,6 @@
 
   <artifactId>admin-service</artifactId>
 
-  <properties>
-    <spring.cloud.gcp.secretmanager.enabled>true</spring.cloud.gcp.secretmanager.enabled>
-    <spring.cloud.gcp.project-id>mosqhealthagent</spring.cloud.gcp.project-id>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>org.springframework.boot</groupId>

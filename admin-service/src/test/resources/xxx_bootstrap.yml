@@ -1,6 +1,0 @@
-spring:
-  cloud:
-    gcp:
-      project-id: "782332691073"
-      secretmanager:
-        enabled: true

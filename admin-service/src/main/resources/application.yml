@@ -2,28 +2,28 @@ server:
   port: 8080
 
 spring:
+  config:
+    import: sm://
   # dice a Spring di non sostituire il tuo datasource configurato con uno in-memory
   test:
     database:
       replace: none
   datasource:
-    url: jdbc:postgresql://127.0.0.1:5432/subscript_manage_db_test
-    username: ${DB_USER}
-    password: ${DB_PASSW}
+    url: jdbc:postgresql://127.0.0.1:5432/${SUBSCRIPT_MANAGE_DB}
+    username: ${sm://projects/782332691073/secrets/DB_USER/versions/1}
+    password: ${sm://projects/782332691073/secrets/DB_PASSW/versions/1}
     driver-class-name: org.postgresql.Driver
-
 
   # Disabilita Cloud SQL autoconfigure per i test
   cloud:
     gcp:
       sql:
         enabled: false
+      secretmanager:
+        enabled: true
 
 app:
   bootstrap:
     tokenTtlMinutes: 60
-    # chiave HMAC (base64) - in prod mettila in Secret Manager e inietti via env
-    hmacKeyBase64: ${BOOTSTRAP_HMAC_KEY_BASE64}
+    hmacKeyBase64: ${sm://projects/782332691073/secrets/BOOTSTRAP_HMAC_KEY_BASE64/versions/1}
     enrollmentUrl: ${ENROLLMENT_URL}
-    #hmacKeyBase64: ${sm://projects/782332691073/secrets/BOOTSTRAP_HMAC_KEY_BASE64/versions/1}
-    #hmacKeyBase64: KKcmrxzeOwXXr5PARjc+z7MSyBZkWSCK9lqEU9lEGgE=

@@ -14,12 +14,29 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 //@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import ai.berticloud.admin.api.AdminController;
+import ai.berticloud.admin.security.BootstrapTokenIssuer;
+import ai.berticloud.admin.db.AdminRepository;
+
 /** @JdbcTest per default wrappa ogni test in una transazione e la fa rollback automaticamente al termine.
  *  Quindi il test passa, i dati vengono scritti durante il test, ma alla fine tutto viene annullato.
+ *  NOTA: @JdbcTest non carica correttamente Secret Manager, quindi usiamo @SpringBootTest.
 */
+//@SpringBootTest
 @JdbcTest
 @ActiveProfiles("test")
 public class CloudSqlPostgresTest {
+
+    @MockBean
+    AdminController adminController;
+
+    @MockBean
+    BootstrapTokenIssuer bootstrapTokenIssuer;
+
+    @MockBean
+    AdminRepository adminRepository;
 
     @Autowired
     private Environment env;
@@ -42,14 +59,6 @@ public class CloudSqlPostgresTest {
 
         // Assicurati che la tabella esista per il test
         //jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS unitTestSchema.test_records (id SERIAL PRIMARY KEY, message VARCHAR(255), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
-    }
-
-    //TODO test da sterminare in esercizio
-    @Test
-    void checkConfig() {
-        System.out.println("DB URL: " + env.getProperty("spring.datasource.url"));
-        System.out.println("DB USER: " + env.getProperty("spring.datasource.username"));
-        System.out.println("PASSWORD LETTA: " + env.getProperty("spring.datasource.password"));
     }
 
 
