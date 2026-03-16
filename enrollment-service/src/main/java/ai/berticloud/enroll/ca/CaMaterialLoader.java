@@ -22,7 +22,8 @@ import java.security.cert.X509Certificate;
  * INPUT (Secret Manager):
  * - issuingKeySecret: PEM della private key della issuing CA
  * - issuingCertSecret: PEM del certificato della issuing CA
- * - chainSecret (opzionale): PEM della chain (intermediate/root). Se assente usa issuingCert.
+ * - chainSecret (opzionale): PEM della chain (intermediate/root). Se assente
+ * usa issuingCert.
  *
  * PERCHÉ Secret Manager:
  * - Chiave CA è un segreto ad alta criticità.
@@ -30,7 +31,7 @@ import java.security.cert.X509Certificate;
  *
  * NOTE OPERATIVE:
  * - Questo loader è chiamato per ogni richiesta di enrollment nel codice L1.
- *   In L2 puoi aggiungere caching in memoria del materiale CA (con TTL/rotation).
+ * In L2 puoi aggiungere caching in memoria del materiale CA (con TTL/rotation).
  *
  * @author Antonio Berti
  * @version 1.0
@@ -44,9 +45,9 @@ public class CaMaterialLoader {
   private final String chainSecret;
 
   public CaMaterialLoader(SecretManagerTemplate sm,
-                          @Value("${app.ca.issuingKeySecret}") String keySecret,
-                          @Value("${app.ca.issuingCertSecret}") String certSecret,
-                          @Value("${app.ca.chainSecret:}") String chainSecret) {
+      @Value("${app.ca.issuingKeySecret}") String keySecret,
+      @Value("${app.ca.issuingCertSecret}") String certSecret,
+      @Value("${app.ca.chainSecret:}") String chainSecret) {
     this.sm = sm;
     this.keySecret = keySecret;
     this.certSecret = certSecret;
@@ -57,13 +58,13 @@ public class CaMaterialLoader {
    * Carica key/cert/chain dal Secret Manager e li converte in oggetti Java.
    */
   public CaMaterial load() {
-    String keyPem = sm.getSecretString(keySecret);
-    String certPem = sm.getSecretString(certSecret);
-    String chainPem = (chainSecret == null || chainSecret.isBlank()) ? certPem : sm.getSecretString(chainSecret);
+    //String keyPem = sm.getSecretString(keySecret);
+    //String certPem = sm.getSecretString(certSecret);
+    //String chainPem = (chainSecret == null || chainSecret.isBlank()) ? certPem : sm.getSecretString(chainSecret);
 
-    PrivateKey key = parsePrivateKey(keyPem);
-    X509Certificate cert = parseCert(certPem);
-    return new CaMaterial(key, cert, chainPem);
+    PrivateKey key = parsePrivateKey(keySecret);
+    X509Certificate cert = parseCert(certSecret);
+    return new CaMaterial(key, cert, certSecret);
   }
 
   /**
@@ -77,8 +78,10 @@ public class CaMaterialLoader {
       Object o = p.readObject();
       var conv = new JcaPEMKeyConverter();
       // gestisce PKCS#8 (PrivateKeyInfo) e altri formati comuni
-      if (o instanceof org.bouncycastle.asn1.pkcs.PrivateKeyInfo info) return conv.getPrivateKey(info);
-      if (o instanceof org.bouncycastle.openssl.PEMKeyPair kp) return conv.getKeyPair(kp).getPrivate();
+      if (o instanceof org.bouncycastle.asn1.pkcs.PrivateKeyInfo info)
+        return conv.getPrivateKey(info);
+      if (o instanceof org.bouncycastle.openssl.PEMKeyPair kp)
+        return conv.getKeyPair(kp).getPrivate();
       throw new IllegalArgumentException("Unsupported key PEM type: " + o.getClass());
     } catch (Exception e) {
       throw new RuntimeException("Cannot parse CA private key", e);
@@ -91,7 +94,8 @@ public class CaMaterialLoader {
   private static X509Certificate parseCert(String pem) {
     try (PEMParser p = new PEMParser(new StringReader(pem))) {
       Object o = p.readObject();
-      if (!(o instanceof X509CertificateHolder h)) throw new IllegalArgumentException("Invalid cert PEM");
+      if (!(o instanceof X509CertificateHolder h))
+        throw new IllegalArgumentException("Invalid cert PEM");
       return new JcaX509CertificateConverter().getCertificate(h);
     } catch (Exception e) {
       throw new RuntimeException("Cannot parse CA certificate", e);

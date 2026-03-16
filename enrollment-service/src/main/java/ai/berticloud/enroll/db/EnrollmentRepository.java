@@ -109,7 +109,7 @@ public class EnrollmentRepository {
     // history
     jdbc.update("""
       INSERT INTO control_plane.device_cert_history(
-        device_id, fingerprint_sha256, cert_serial, not_before, not_after, issued_at, revoked_at, reason
+        device_id, fingerprint_sha256, cert_serial, not_before, not_after, issued_at, revoked_at, revoke_reason
       )
       VALUES(?, ?, ?, now(), ?, now(), NULL, NULL)
       """, deviceId, fingerprintSha256Hex, certSerialHex, Timestamp.from(certNotAfter));
