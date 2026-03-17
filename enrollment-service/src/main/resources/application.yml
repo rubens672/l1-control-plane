@@ -2,6 +2,8 @@ server:
   port: 8081
 
 spring:
+  application:
+    name: enrollment-service
   config:
     import: sm://
   # dice a Spring di non sostituire il tuo datasource configurato con uno in-memory

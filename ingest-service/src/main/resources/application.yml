@@ -1,18 +1,32 @@
 server:
-  port: 8080
+  port: 8082
 
 spring:
   application:
     name: ingest-service
+  config:
+    import: sm://
+  # dice a Spring di non sostituire il tuo datasource configurato con uno in-memory
+  test:
+    database:
+      replace: none
   datasource:
+    url: jdbc:postgresql://127.0.0.1:5432/${SUBSCRIPT_MANAGE_DB}
+    username: ${sm://projects/782332691073/secrets/DB_USER/versions/1}
+    password: ${sm://projects/782332691073/secrets/DB_PASSW/versions/1}
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql:///${DB_NAME}?cloudSqlInstance=${CLOUDSQL_INSTANCE}&socketFactory=com.google.cloud.sql.postgres.SocketFactory
-    username: ${DB_USER}
-    password: ${DB_PASS}
+
+  # Disabilita Cloud SQL autoconfigure per i test
+  cloud:
+    gcp:
+      sql:
+        enabled: false
+      secretmanager:
+        enabled: true
 
 app:
   pubsub:
-    topic: ${PUBSUB_TOPIC}
+    topic: projects/mosqhealthagent/topics/edge-telemetry
   cache:
     allowTtlMinutes: 10
     denyTtlSeconds: 90

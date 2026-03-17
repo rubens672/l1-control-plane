@@ -64,7 +64,7 @@ public class CaMaterialLoader {
 
     PrivateKey key = parsePrivateKey(keySecret);
     X509Certificate cert = parseCert(certSecret);
-    return new CaMaterial(key, cert, certSecret);
+    return new CaMaterial(key, cert, null);
   }
 
   /**

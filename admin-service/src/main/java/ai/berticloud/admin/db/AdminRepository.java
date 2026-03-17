@@ -92,6 +92,13 @@ public class AdminRepository {
       """, deviceId, tenantId, siteId, model);
   }
 
+  public int deleteDeviceById(String deviceId) {
+    return jdbc.update("""
+    DELETE FROM control_plane.devices
+    WHERE device_id = ?
+    """, deviceId);
+  }
+
   /**
    * Salva bootstrap token (hash + expiry) sul record device PENDING.
    *

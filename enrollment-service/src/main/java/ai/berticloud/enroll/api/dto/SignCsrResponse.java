@@ -23,6 +23,6 @@ package ai.berticloud.enroll.api.dto;
  * @since 4 March 2026
  */
 public record SignCsrResponse(
-    String clientCertPem,
-    String chainPem
+    String clientCertPem
+    //String chainPem
 ) {}

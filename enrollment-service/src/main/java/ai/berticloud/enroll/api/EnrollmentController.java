@@ -139,10 +139,11 @@ public class EnrollmentController {
       );
 
       // 10) Response: cert PEM + chain PEM (il device li installerà per chiamare ingest con mTLS).
+      //     Per ora si usa solo cert PEM.
       String certPem = pemEncode(cert);
-      String chainPem = ca.chainPem();
+      //String chainPem = ca.chainPem();
 
-      return ResponseEntity.ok(new SignCsrResponse(certPem, chainPem));
+      return ResponseEntity.ok(new SignCsrResponse(certPem)); // <- , chainPem
     }catch(Exception e){
       e.printStackTrace();
       return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));

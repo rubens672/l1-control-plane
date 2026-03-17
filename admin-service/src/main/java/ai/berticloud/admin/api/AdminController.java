@@ -7,6 +7,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 /*
  * Copyright (c) 2026 Berti AI & Cloud Architecture. All rights reserved.
  */
@@ -123,6 +125,18 @@ public class AdminController {
   @PostMapping("/devices")
   public ResponseEntity<?> createDevice(@Valid @RequestBody CreateDeviceRequest r) {
     repo.createDevicePending(r.deviceId(), r.tenantId(), r.siteId(), r.model());
+    return ResponseEntity.ok().build();
+  }
+
+  /**
+   * Elimina il device.
+   * @param deviceId Identificativo device.
+   * @return Numero di record eliminati.
+   */
+  @PostMapping("/devices/{deviceId}:delete")
+  public ResponseEntity<?> deleteDevice(@PathVariable("deviceId") String deviceId) {
+    int rows = repo.deleteDeviceById(deviceId);
+    if (rows == 0) return ResponseEntity.status(404).body(Map.of("error", "device_not_found"));
     return ResponseEntity.ok().build();
   }
 
