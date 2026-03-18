@@ -7,11 +7,11 @@ mvn clean install -DskipTests
 ### controllo
 gcloud auth list
 
-### Re-autentica gcloud CLI
-gcloud auth login --update-adc
-
 ### login gcp
 gcloud auth login admin@berticloud.ai
+
+### Re-autentica gcloud CLI
+gcloud auth login --update-adc
 
 ### settare il project
 gcloud config set project mosqhealthagent
