@@ -79,6 +79,8 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
+      - '--service-account'
+      - 'l1-control-plane-sa@mosqhealthagent.iam.gserviceaccount.com'
     waitFor: ['push-all']
 
   # Deploy ENROLLMENT-SERVICE
@@ -96,6 +98,8 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
+      - '--service-account'
+      - 'l1-control-plane-sa@mosqhealthagent.iam.gserviceaccount.com'
     waitFor: ['push-all']
 
   # Deploy INGEST-SERVICE
@@ -114,6 +118,8 @@ steps:
       - 'managed'
       # --allow-unauthenticated rimosso o modificabile a seconda dei settaggi LB. Per test MVP aggiunto:
       - '--allow-unauthenticated'
+      - '--service-account'
+      - 'l1-control-plane-sa@mosqhealthagent.iam.gserviceaccount.com'
     waitFor: ['push-all']
 
 options:
