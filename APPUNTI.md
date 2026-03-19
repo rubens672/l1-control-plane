@@ -16,6 +16,12 @@ gcloud auth login --update-adc
 ### settare il project
 gcloud config set project mosqhealthagent
 
+### Scarica il binario cloud-sql-proxy
+curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.21.1/cloud-sql-proxy.linux.amd64
+
+### Rendilo eseguibile
+chmod +x cloud-sql-proxy
+
 ### avvio della connessione proxy x Cloud Sql
 ./cloud-sql-proxy mosqhealthagent:europe-west12:control-plan-gateway-db --private-ip &
 

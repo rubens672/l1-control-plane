@@ -145,7 +145,7 @@ steps:
     waitFor: ['push-ingest']
 
 substitutions:
-  _ENROLLMENT_URL: 'https://tuo-dominio.com/v1/enrollment'
+  _ENROLLMENT_URL: 'https://enrollment.vs.berticloud.ai/v1/enrollments'
   _SUBSCRIPT_MANAGE_DB: 'mosqhealthagent:europe-west12:control-plan-gateway-db'
   _SUBSCRIPT_MANAGE_DB_SCHEMA: 'subscript_manage_db'
   _DEPLOY_REGION: 'us-central1'

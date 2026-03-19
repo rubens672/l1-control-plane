@@ -5,6 +5,8 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /*
  * Copyright (c) 2026 Berti AI & Cloud Architecture. All rights reserved.
@@ -35,6 +37,8 @@ import java.time.Instant;
  */
 @Repository
 public class AdminRepository {
+  private static final Logger log = LoggerFactory.getLogger(AdminRepository.class);
+
   private final JdbcTemplate jdbc;
 
   public AdminRepository(JdbcTemplate jdbc) {
@@ -93,10 +97,12 @@ public class AdminRepository {
   }
 
   public int deleteDeviceById(String deviceId) {
-    return jdbc.update("""
+    int deletedRows = jdbc.update("""
     DELETE FROM control_plane.devices
     WHERE device_id = ?
     """, deviceId);
+    log.debug("Deleted {} rows for device: {}", deletedRows, deviceId);
+    return deletedRows;
   }
 
   /**

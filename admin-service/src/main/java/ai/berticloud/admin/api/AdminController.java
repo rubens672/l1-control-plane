@@ -6,6 +6,8 @@ import ai.berticloud.admin.security.BootstrapTokenIssuer;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
@@ -77,6 +79,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/v1/admin")
 public class AdminController {
+  private static final Logger log = LoggerFactory.getLogger(AdminController.class);
+
   private final AdminRepository repo;
   private final BootstrapTokenIssuer issuer;
 
@@ -91,8 +95,15 @@ public class AdminController {
    */
   @PostMapping("/tenants")
   public ResponseEntity<?> createTenant(@Valid @RequestBody CreateTenantRequest r) {
-    repo.createTenant(r.tenantId(), r.name(), r.plan());
-    return ResponseEntity.ok().build();
+    log.info("Received request to create tenant: {}", r.tenantId());
+    try {
+      repo.createTenant(r.tenantId(), r.name(), r.plan());
+      log.info("Successfully created tenant: {}", r.tenantId());
+      return ResponseEntity.ok().build();
+    } catch (Exception e) {
+      log.error("Failed to create tenant: {}", r.tenantId(), e);
+      return ResponseEntity.status(500).body(Map.of("error", "Failed to create tenant"));
+    }
   }
 
   /**
@@ -101,8 +112,15 @@ public class AdminController {
    */
   @PostMapping("/subscriptions")
   public ResponseEntity<?> upsertSubscription(@Valid @RequestBody CreateSubscriptionRequest r) {
-    repo.upsertSubscription(r.tenantId(), r.status(), r.validFrom(), r.validTo(), r.maxDevices());
-    return ResponseEntity.ok().build();
+    log.info("Received request to upsert subscription for tenant: {}", r.tenantId());
+    try {
+      repo.upsertSubscription(r.tenantId(), r.status(), r.validFrom(), r.validTo(), r.maxDevices());
+      log.info("Successfully upserted subscription for tenant: {}", r.tenantId());
+      return ResponseEntity.ok().build();
+    } catch (Exception e) {
+      log.error("Failed to upsert subscription for tenant: {}", r.tenantId(), e);
+      return ResponseEntity.status(500).body(Map.of("error", "Failed to upsert subscription"));
+    }
   }
 
   /**
@@ -111,8 +129,15 @@ public class AdminController {
    */
   @PostMapping("/sites")
   public ResponseEntity<?> createSite(@Valid @RequestBody CreateSiteRequest r) {
-    repo.createSite(r.siteId(), r.tenantId(), r.name(), r.timezone(), r.status());
-    return ResponseEntity.ok().build();
+    log.info("Received request to create site: {} for tenant: {}", r.siteId(), r.tenantId());
+    try {
+      repo.createSite(r.siteId(), r.tenantId(), r.name(), r.timezone(), r.status());
+      log.info("Successfully created site: {}", r.siteId());
+      return ResponseEntity.ok().build();
+    } catch (Exception e) {
+      log.error("Failed to create site: {}", r.siteId(), e);
+      return ResponseEntity.status(500).body(Map.of("error", "Failed to create site"));
+    }
   }
 
   /**
@@ -124,8 +149,15 @@ public class AdminController {
    */
   @PostMapping("/devices")
   public ResponseEntity<?> createDevice(@Valid @RequestBody CreateDeviceRequest r) {
-    repo.createDevicePending(r.deviceId(), r.tenantId(), r.siteId(), r.model());
-    return ResponseEntity.ok().build();
+    log.info("Received request to register pending device: {} for tenant: {}", r.deviceId(), r.tenantId());
+    try {
+      repo.createDevicePending(r.deviceId(), r.tenantId(), r.siteId(), r.model());
+      log.info("Successfully registered pending device: {}", r.deviceId());
+      return ResponseEntity.ok().build();
+    } catch (Exception e) {
+      log.error("Failed to register device: {}", r.deviceId(), e);
+      return ResponseEntity.status(500).body(Map.of("error", "Failed to register device"));
+    }
   }
 
   /**
@@ -135,9 +167,19 @@ public class AdminController {
    */
   @PostMapping("/devices/{deviceId}:delete")
   public ResponseEntity<?> deleteDevice(@PathVariable("deviceId") String deviceId) {
-    int rows = repo.deleteDeviceById(deviceId);
-    if (rows == 0) return ResponseEntity.status(404).body(Map.of("error", "device_not_found"));
-    return ResponseEntity.ok().build();
+    log.info("Received request to delete device: {}", deviceId);
+    try {
+      int rows = repo.deleteDeviceById(deviceId);
+      if (rows == 0) {
+        log.warn("Device not found for deletion: {}", deviceId);
+        return ResponseEntity.status(404).body(Map.of("error", "device_not_found"));
+      }
+      log.info("Successfully deleted device: {}", deviceId);
+      return ResponseEntity.ok().build();
+    } catch (Exception e) {
+      log.error("Failed to delete device: {}", deviceId, e);
+      return ResponseEntity.status(500).body(Map.of("error", "Failed to delete device"));
+    }
   }
 
   /**
@@ -155,9 +197,16 @@ public class AdminController {
    * - Il token è temporaneo: TTL ~60 minuti (config).
    */
   @PostMapping("/devices/{deviceId}:bootstrapToken")
-  public ResponseEntity<BootstrapTokenResponse> issueBootstrap(@PathVariable("deviceId") String deviceId) {
-    var t = issuer.issueOneTimeToken(deviceId);
-    repo.setBootstrapToken(deviceId, t.tokenHashHex(), t.expiresAt());
-    return ResponseEntity.ok(new BootstrapTokenResponse(deviceId, t.tokenPlain(), t.enrollmentUrl(), t.expiresAt()));
+  public ResponseEntity<?> issueBootstrap(@PathVariable("deviceId") String deviceId) {
+    log.info("Received request to issue bootstrap token for device: {}", deviceId);
+    try {
+      var t = issuer.issueOneTimeToken(deviceId);
+      repo.setBootstrapToken(deviceId, t.tokenHashHex(), t.expiresAt());
+      log.info("Successfully issued bootstrap token for device: {}", deviceId);
+      return ResponseEntity.ok(new BootstrapTokenResponse(deviceId, t.tokenPlain(), t.enrollmentUrl(), t.expiresAt()));
+    } catch (Exception e) {
+      log.error("Failed to issue bootstrap token for device: {}", deviceId, e);
+      return ResponseEntity.status(500).body(Map.of("error", "Failed to issue bootstrap token"));
+    }
   }
 }
