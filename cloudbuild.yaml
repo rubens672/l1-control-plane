@@ -91,6 +91,10 @@ steps:
       - '--allow-unauthenticated'
       - '--service-account'
       - 'l1-control-plane-sa@mosqhealthagent.iam.gserviceaccount.com'
+      - '--set-env-vars'
+      - 'ENROLLMENT_URL=${_ENROLLMENT_URL},SUBSCRIPT_MANAGE_DB_SCHEMA=${_SUBSCRIPT_MANAGE_DB_SCHEMA},SUBSCRIPT_MANAGE_DB=${_SUBSCRIPT_MANAGE_DB}'
+      - '--add-cloudsql-instances'
+      - '${_SUBSCRIPT_MANAGE_DB}'
     waitFor: ['push-admin']
 
   # Deploy ENROLLMENT-SERVICE
@@ -110,6 +114,10 @@ steps:
       - '--allow-unauthenticated'
       - '--service-account'
       - 'l1-control-plane-sa@mosqhealthagent.iam.gserviceaccount.com'
+      - '--set-env-vars'
+      - 'ENROLLMENT_URL=${_ENROLLMENT_URL},SUBSCRIPT_MANAGE_DB_SCHEMA=${_SUBSCRIPT_MANAGE_DB_SCHEMA},SUBSCRIPT_MANAGE_DB=${_SUBSCRIPT_MANAGE_DB}'
+      - '--add-cloudsql-instances'
+      - '${_SUBSCRIPT_MANAGE_DB}'
     waitFor: ['push-enrollment']
 
   # Deploy INGEST-SERVICE
@@ -130,7 +138,16 @@ steps:
       - '--allow-unauthenticated'
       - '--service-account'
       - 'l1-control-plane-sa@mosqhealthagent.iam.gserviceaccount.com'
+      - '--set-env-vars'
+      - 'ENROLLMENT_URL=${_ENROLLMENT_URL},SUBSCRIPT_MANAGE_DB_SCHEMA=${_SUBSCRIPT_MANAGE_DB_SCHEMA},SUBSCRIPT_MANAGE_DB=${_SUBSCRIPT_MANAGE_DB}'
+      - '--add-cloudsql-instances'
+      - '${_SUBSCRIPT_MANAGE_DB}'
     waitFor: ['push-ingest']
+
+substitutions:
+  _ENROLLMENT_URL: 'https://tuo-dominio.com/v1/enrollment'
+  _SUBSCRIPT_MANAGE_DB: 'mosqhealthagent:europe-west12:control-plan-gateway-db'
+  _SUBSCRIPT_MANAGE_DB_SCHEMA: 'subscript_manage_db'
 
 options:
   #dynamicSubstitutions: true

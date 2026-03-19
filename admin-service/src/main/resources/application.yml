@@ -12,7 +12,7 @@ spring:
     database:
       replace: none
   datasource:
-    url: jdbc:postgresql://127.0.0.1:5432/${SUBSCRIPT_MANAGE_DB}
+    url: jdbc:postgresql:///${SUBSCRIPT_MANAGE_DB_SCHEMA}?cloudSqlInstance=${SUBSCRIPT_MANAGE_DB}&socketFactory=com.google.cloud.sql.postgres.SocketFactory
     username: ${sm://projects/782332691073/secrets/DB_USER/versions/1}
     password: ${sm://projects/782332691073/secrets/DB_PASSW/versions/1}
     driver-class-name: org.postgresql.Driver
