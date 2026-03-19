@@ -57,9 +57,19 @@ steps:
   # PUSH DELLE IMMAGINI
   # =================================================================================
   - name: 'gcr.io/cloud-builders/docker'
-    id: 'push-all'
-    args: ['push', 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo', '--all-tags']
-    waitFor: ['build-admin', 'build-enrollment', 'build-ingest']
+    id: 'push-admin'
+    args: ['push', 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/admin-service', '--all-tags']
+    waitFor: ['build-admin']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-enrollment'
+    args: ['push', 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/enrollment-service', '--all-tags']
+    waitFor: ['build-enrollment']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-ingest'
+    args: ['push', 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/ingest-service', '--all-tags']
+    waitFor: ['build-ingest']
 
   # =================================================================================
   # DEPLOY SU CLOUD RUN
@@ -81,7 +91,7 @@ steps:
       - '--allow-unauthenticated'
       - '--service-account'
       - 'l1-control-plane-sa@mosqhealthagent.iam.gserviceaccount.com'
-    waitFor: ['push-all']
+    waitFor: ['push-admin']
 
   # Deploy ENROLLMENT-SERVICE
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -100,7 +110,7 @@ steps:
       - '--allow-unauthenticated'
       - '--service-account'
       - 'l1-control-plane-sa@mosqhealthagent.iam.gserviceaccount.com'
-    waitFor: ['push-all']
+    waitFor: ['push-enrollment']
 
   # Deploy INGEST-SERVICE
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -120,7 +130,7 @@ steps:
       - '--allow-unauthenticated'
       - '--service-account'
       - 'l1-control-plane-sa@mosqhealthagent.iam.gserviceaccount.com'
-    waitFor: ['push-all']
+    waitFor: ['push-ingest']
 
 options:
   #dynamicSubstitutions: true
