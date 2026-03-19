@@ -57,6 +57,14 @@
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-maven-plugin</artifactId>
           <version>${spring.boot.version}</version>
+          <executions>
+            <execution>
+              <goals>
+                <!-- dopo aver compilato le classi in un JAR, chiamalo 'repackage' e impacchetta tutto per renderlo eseguibile autonomamente -->
+                <goal>repackage</goal>
+              </goals>
+            </execution>
+          </executions>
         </plugin>
 
         <plugin>
