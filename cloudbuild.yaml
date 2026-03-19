@@ -85,7 +85,7 @@ steps:
       - '--image'
       - 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/admin-service:$COMMIT_SHA'
       - '--region'
-      - 'europe-west12'
+      - '${_DEPLOY_REGION}'
       - '--platform'
       - 'managed'
       - '--no-invoker-iam-check'
@@ -108,7 +108,7 @@ steps:
       - '--image'
       - 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/enrollment-service:$COMMIT_SHA'
       - '--region'
-      - 'europe-west12'
+      - '${_DEPLOY_REGION}'
       - '--platform'
       - 'managed'
       - '--no-invoker-iam-check'
@@ -131,7 +131,7 @@ steps:
       - '--image'
       - 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/ingest-service:$COMMIT_SHA'
       - '--region'
-      - 'europe-west12'
+      - '${_DEPLOY_REGION}'
       - '--platform'
       - 'managed'
       # --allow-unauthenticated rimosso o modificabile a seconda dei settaggi LB. Per test MVP aggiunto:
@@ -148,6 +148,7 @@ substitutions:
   _ENROLLMENT_URL: 'https://tuo-dominio.com/v1/enrollment'
   _SUBSCRIPT_MANAGE_DB: 'mosqhealthagent:europe-west12:control-plan-gateway-db'
   _SUBSCRIPT_MANAGE_DB_SCHEMA: 'subscript_manage_db'
+  _DEPLOY_REGION: 'us-central1'
 
 options:
   #dynamicSubstitutions: true
