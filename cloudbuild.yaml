@@ -1,0 +1,129 @@
+steps:
+  # =================================================================================
+  # BUILD BUILDER STAGE (Cache Maven per velocizzare le successive 3 build)
+  # =================================================================================
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-maven-builder'
+    args: [
+      'build',
+      '--target', 'builder',
+      '-t', 'maven-builder',
+      '.'
+    ]
+
+  # =================================================================================
+  # BUILD DEI SERVIZI
+  # =================================================================================
+  # Build ADMIN-SERVICE
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-admin'
+    args: [
+      'build',
+      '--build-arg', 'SERVICE_NAME=admin-service',
+      '--cache-from', 'maven-builder',
+      '-t', 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/admin-service:$COMMIT_SHA',
+      '-t', 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/admin-service:latest',
+      '.'
+    ]
+    waitFor: ['build-maven-builder']
+
+  # Build ENROLLMENT-SERVICE
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-enrollment'
+    args: [
+      'build',
+      '--build-arg', 'SERVICE_NAME=enrollment-service',
+      '--cache-from', 'maven-builder',
+      '-t', 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/enrollment-service:$COMMIT_SHA',
+      '-t', 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/enrollment-service:latest',
+      '.'
+    ]
+    waitFor: ['build-maven-builder']
+
+  # Build INGEST-SERVICE
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-ingest'
+    args: [
+      'build',
+      '--build-arg', 'SERVICE_NAME=ingest-service',
+      '--cache-from', 'maven-builder',
+      '-t', 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/ingest-service:$COMMIT_SHA',
+      '-t', 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/ingest-service:latest',
+      '.'
+    ]
+    waitFor: ['build-maven-builder']
+
+  # =================================================================================
+  # PUSH DELLE IMMAGINI
+  # =================================================================================
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-all'
+    args: ['push', 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo', '--all-tags']
+    waitFor: ['build-admin', 'build-enrollment', 'build-ingest']
+
+  # =================================================================================
+  # DEPLOY SU CLOUD RUN
+  # =================================================================================
+  # Deploy ADMIN-SERVICE
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-admin'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'admin-service'
+      - '--image'
+      - 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/admin-service:$COMMIT_SHA'
+      - '--region'
+      - 'europe-west12'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+    waitFor: ['push-all']
+
+  # Deploy ENROLLMENT-SERVICE
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-enrollment'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'enrollment-service'
+      - '--image'
+      - 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/enrollment-service:$COMMIT_SHA'
+      - '--region'
+      - 'europe-west12'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+    waitFor: ['push-all']
+
+  # Deploy INGEST-SERVICE
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-ingest'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'ingest-service'
+      - '--image'
+      - 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/ingest-service:$COMMIT_SHA'
+      - '--region'
+      - 'europe-west12'
+      - '--platform'
+      - 'managed'
+      # --allow-unauthenticated rimosso o modificabile a seconda dei settaggi LB. Per test MVP aggiunto:
+      - '--allow-unauthenticated'
+    waitFor: ['push-all']
+
+options:
+  #dynamicSubstitutions: true
+  logging: CLOUD_LOGGING_ONLY
+
+images:
+  - 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/admin-service:$COMMIT_SHA'
+  - 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/admin-service:latest'
+  - 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/enrollment-service:$COMMIT_SHA'
+  - 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/enrollment-service:latest'
+  - 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/ingest-service:$COMMIT_SHA'
+  - 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/ingest-service:latest'

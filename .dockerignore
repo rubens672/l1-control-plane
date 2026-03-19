@@ -1,0 +1,14 @@
+.git
+.idea
+target/
+*/target/
+*.md
+.gitignore
+APPUNTI.md
+ARCHITECTURE.md
+README.md
+SECURITY.md
+SQL_CREATE.sql
+cloud-sql-proxy
+.dockerignore
+cloudbuild.yaml
