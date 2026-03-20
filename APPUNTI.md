@@ -25,6 +25,24 @@ chmod +x cloud-sql-proxy
 ### avvio della connessione proxy x Cloud Sql
 ./cloud-sql-proxy mosqhealthagent:europe-west12:control-plan-gateway-db --private-ip &
 
+### Correzione rapida da shell di clientCertPem
+#### Se il file attuale contiene proprio la stringa JSON-escaped, puoi convertirlo così:
+
+python3 - <<'PY'  
+from pathlib import Path  
+p = Path('/home/aberti/ca-local/certs/rpi-123.cert.pem')  
+s = p.read_text()  
+  
+s = s.strip()  
+  
+if s.startswith('{') and s.endswith('}'):  
+s = s[1:-1]  
+  
+s = s.replace('\\n', '\n')  
+p.write_text(s)  
+print("File sistemato")  
+PY  
+
 ## Creazione alberatura maven
 #!/usr/bin/env bash
 set -euo pipefail
