@@ -155,9 +155,10 @@ public class EnrollmentController {
 
       // 10) Response: cert PEM + chain PEM (il device li installerà per chiamare ingest con mTLS).
       String certPem = pemEncode(cert);
+      String chainPem = ca.chainPem();
       
       log.info("Successfully enrolled device: {}", deviceId);
-      return ResponseEntity.ok(new SignCsrResponse(certPem));
+      return ResponseEntity.ok(new SignCsrResponse(certPem, chainPem));
     } catch (IllegalArgumentException e) {
       log.warn("Invalid CSR or request data for device {}: {}", deviceId, e.getMessage());
       return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

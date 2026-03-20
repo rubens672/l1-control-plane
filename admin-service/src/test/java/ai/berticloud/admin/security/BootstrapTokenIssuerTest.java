@@ -17,12 +17,13 @@ class BootstrapTokenIssuerTest {
     private static final String TEST_KEY_BASE64 = Base64.getEncoder().encodeToString("test-secret-key-32-chars-long-12345".getBytes());
     private static final long TEST_TTL = 60;
     private static final String TEST_ENROLLMENT_URL = "https://test-enrollment-url.com";
+private static final String TEST_TELEMESTRY_URL = "https://test-telemetry-url.com";
 
     @Test
     void issueOneTimeToken_ShouldGenerateValidToken() {
         // GIVEN
-        BootstrapTokenIssuer issuer = new BootstrapTokenIssuer(TEST_KEY_BASE64, TEST_TTL, TEST_ENROLLMENT_URL);
-        String deviceId = "dev-123";
+        BootstrapTokenIssuer issuer = new BootstrapTokenIssuer(TEST_KEY_BASE64, TEST_TTL, TEST_ENROLLMENT_URL, TEST_TELEMESTRY_URL);
+        String deviceId = "rpi-123";
 
         // WHEN
         BootstrapTokenIssuer.IssuedToken result = issuer.issueOneTimeToken(deviceId);

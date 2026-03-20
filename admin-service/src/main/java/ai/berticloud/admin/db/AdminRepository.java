@@ -106,6 +106,27 @@ public class AdminRepository {
   }
 
   /**
+   * Dato un deviceId, ritorni tenantId e siteId.
+   *
+   * questa lancia eccezione se non trova nulla (EmptyResultDataAccessException)
+   */
+  public DeviceTenantSite findTenantAndSiteByDeviceId(String deviceId) {
+    String sql = """
+    SELECT tenant_id, site_id
+    FROM control_plane.devices
+    WHERE device_id = ?
+    """;
+
+    return jdbc.queryForObject(sql,
+            (rs, rowNum) -> new DeviceTenantSite(
+                    rs.getString("tenant_id"),
+                    rs.getString("site_id")
+            ),
+            deviceId
+    );
+  }
+
+  /**
    * Salva bootstrap token (hash + expiry) sul record device PENDING.
    *
    * INPUT:
@@ -123,4 +144,6 @@ public class AdminRepository {
       WHERE device_id = ? AND status = 'PENDING'
       """, tokenHashHex, Timestamp.from(expiresAt), deviceId);
   }
+
+  public record DeviceTenantSite(String tenantId, String siteId) {}
 }

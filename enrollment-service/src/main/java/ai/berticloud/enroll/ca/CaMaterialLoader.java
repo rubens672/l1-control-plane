@@ -60,11 +60,11 @@ public class CaMaterialLoader {
   public CaMaterial load() {
     //String keyPem = sm.getSecretString(keySecret);
     //String certPem = sm.getSecretString(certSecret);
-    //String chainPem = (chainSecret == null || chainSecret.isBlank()) ? certPem : sm.getSecretString(chainSecret);
+    String chainPem = (chainSecret == null || chainSecret.isBlank()) ? certSecret : sm.getSecretString(chainSecret);
 
     PrivateKey key = parsePrivateKey(keySecret);
     X509Certificate cert = parseCert(certSecret);
-    return new CaMaterial(key, cert, null);
+    return new CaMaterial(key, cert, chainPem);
   }
 
   /**

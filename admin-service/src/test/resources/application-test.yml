@@ -19,3 +19,10 @@ spring:
       # Assicurati che Secret Manager sia abilitato anche in test
       secretmanager:
         enabled: false
+
+app:
+  bootstrap:
+    tokenTtlMinutes: 60
+    hmacKeyBase64: ${sm://projects/782332691073/secrets/BOOTSTRAP_HMAC_KEY_BASE64/versions/1}
+    enrollmentUrl: ${ENROLLMENT_URL}
+    telemetryUrl: ${TELEMETRY_URL}

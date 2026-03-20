@@ -158,7 +158,7 @@ class AdminControllerTest {
         String deviceId = "rpi-123";
         Instant expiresAt = Instant.now().plus(60, java.time.temporal.ChronoUnit.MINUTES);
         BootstrapTokenIssuer.IssuedToken mockToken = new BootstrapTokenIssuer.IssuedToken(
-                deviceId, "plaintext-token-123", "hash-123", expiresAt, "https://enroll.example.com");
+                deviceId, "plaintext-token-123", "hash-123", expiresAt, "https://enroll.example.com" ,"https://telemetry.example.com");
 
         Mockito.when(issuer.issueOneTimeToken(deviceId)).thenReturn(mockToken);
 

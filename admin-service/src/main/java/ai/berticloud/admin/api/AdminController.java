@@ -4,6 +4,7 @@ import ai.berticloud.admin.api.dto.*;
 import ai.berticloud.admin.db.AdminRepository;
 import ai.berticloud.admin.security.BootstrapTokenIssuer;
 import jakarta.validation.Valid;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
@@ -200,11 +201,15 @@ public class AdminController {
   public ResponseEntity<?> issueBootstrap(@PathVariable("deviceId") String deviceId) {
     log.info("Received request to issue bootstrap token for device: {}", deviceId);
     try {
+      var ts = repo.findTenantAndSiteByDeviceId(deviceId);
       var t = issuer.issueOneTimeToken(deviceId);
       repo.setBootstrapToken(deviceId, t.tokenHashHex(), t.expiresAt());
       log.info("Successfully issued bootstrap token for device: {}", deviceId);
-      return ResponseEntity.ok(new BootstrapTokenResponse(deviceId, t.tokenPlain(), t.enrollmentUrl(), t.expiresAt()));
-    } catch (Exception e) {
+      return ResponseEntity.ok(new BootstrapTokenResponse(ts.tenantId(), ts.siteId(), deviceId, t.tokenPlain(), t.enrollmentUrl(), t.telemetryUrl(), false, true));
+    }catch (EmptyResultDataAccessException e){
+      log.error("No matching tenants and sites for device: {}", deviceId, e);
+      return ResponseEntity.status(500).body(Map.of("error", "No matching tenants and sites"));
+    }catch (Exception e) {
       log.error("Failed to issue bootstrap token for device: {}", deviceId, e);
       return ResponseEntity.status(500).body(Map.of("error", "Failed to issue bootstrap token"));
     }

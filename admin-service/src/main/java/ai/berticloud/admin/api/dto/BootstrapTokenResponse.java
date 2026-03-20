@@ -27,8 +27,12 @@ import java.time.Instant;
  * @since 4 March 2026
  */
 public record BootstrapTokenResponse(
-    String deviceId,
-    String bootstrapToken,  // segreto temporaneo one-time
-    String enrollmentUrl,
-    Instant expiresAt
+        String tenantId,
+        String siteId,
+        String deviceId,
+        String bootstrapToken,  // segreto temporaneo one-time
+        String enrollmentUrl,
+        String telemetryUrl,
+        Boolean telemetryUseTls,
+        Boolean localTestHeaders
 ) {}
