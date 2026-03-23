@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 
 /*
@@ -213,5 +214,51 @@ public class AdminController {
       log.error("Failed to issue bootstrap token for device: {}", deviceId, e);
       return ResponseEntity.status(500).body(Map.of("error", "Failed to issue bootstrap token"));
     }
+  }
+
+  @GetMapping("/tenants")
+  public ResponseEntity<List<TenantResponse>> listTenants() {
+    log.info("Received request to list tenants");
+    return ResponseEntity.ok(repo.findAllTenants());
+  }
+
+  @GetMapping("/sites")
+  public ResponseEntity<List<SiteResponse>> listSites(@RequestParam("tenantId") String tenantId) {
+    log.info("Received request to list sites for tenant: {}", tenantId);
+    return ResponseEntity.ok(repo.findSitesByTenant(tenantId));
+  }
+
+  @GetMapping("/devices")
+  public ResponseEntity<List<DeviceResponse>> listDevices(@RequestParam("siteId") String siteId) {
+    log.info("Received request to list devices for site: {}", siteId);
+    return ResponseEntity.ok(repo.findDevicesBySite(siteId));
+  }
+
+  @DeleteMapping("/tenants/{tenantId}")
+  public ResponseEntity<?> deleteTenant(@PathVariable("tenantId") String tenantId) {
+    log.info("Received request to delete tenant: {}", tenantId);
+    repo.deleteTenantById(tenantId);
+    return ResponseEntity.ok().build();
+  }
+
+  @DeleteMapping("/subscriptions/{tenantId}")
+  public ResponseEntity<?> deleteSubscription(@PathVariable("tenantId") String tenantId) {
+    log.info("Received request to delete subscription for tenant: {}", tenantId);
+    repo.deleteSubscriptionById(tenantId);
+    return ResponseEntity.ok().build();
+  }
+
+  @DeleteMapping("/sites/{siteId}")
+  public ResponseEntity<?> deleteSite(@PathVariable("siteId") String siteId) {
+    log.info("Received request to delete site: {}", siteId);
+    repo.deleteSiteById(siteId);
+    return ResponseEntity.ok().build();
+  }
+
+  @DeleteMapping("/devices/{deviceId}")
+  public ResponseEntity<?> deleteDeviceRestful(@PathVariable("deviceId") String deviceId) {
+    log.info("Received RESTful request to delete device: {}", deviceId);
+    repo.deleteDeviceById(deviceId);
+    return ResponseEntity.ok().build();
   }
 }

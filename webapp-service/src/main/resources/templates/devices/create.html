@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: layout('Registra Device', ~{::section})}" xmlns:th="http://www.thymeleaf.org">
+<body>
+<section>
+    <div class="mb-3">
+        <a th:href="@{/devices(siteId=${form.siteId})}" class="text-decoration-none">&larr; Torna ai dispositivi</a>
+    </div>
+
+    <div class="card shadow-sm col-md-8 mx-auto">
+        <div class="card-header bg-white">
+            <h4 class="mb-0">Registra Nuovo Dispositivo</h4>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/devices/create}" th:object="${form}" method="post">
+                <input type="hidden" th:field="*{tenantId}">
+                <input type="hidden" th:field="*{siteId}">
+                
+                <div class="mb-3">
+                    <label for="model" class="form-label">Modello / Hardware</label>
+                    <input type="text" class="form-control" id="model" th:field="*{model}" required placeholder="es. Raspberry Pi 4">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="maxMsgs" class="form-label">Messaggi / Minuto (Max)</label>
+                    <input type="number" class="form-control" id="maxMsgs" th:field="*{maxMsgsPerMin}" required min="1">
+                </div>
+
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-primary text-white">Salva Gateway/Device</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+</body>
+</html>

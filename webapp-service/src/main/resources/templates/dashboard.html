@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: layout('Dashboard', ~{::section})}" xmlns:th="http://www.thymeleaf.org">
+<body>
+<section>
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3">Dashboard Operatore</h1>
+            <p class="text-muted">Benvenuto nel pannello di gestione di L1 Control Plane.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Tenants Registrati</h5>
+                    <h2 class="display-4" th:text="${tenantsCount}">0</h2>
+                    <a href="/tenants" class="text-white">Gestisci Tenants &rarr;</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+</html>

@@ -53,6 +53,19 @@ steps:
     ]
     waitFor: ['build-maven-builder']
 
+  # Build WEBAPP-SERVICE
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-webapp'
+    args: [
+      'build',
+      '--build-arg', 'SERVICE_NAME=webapp-service',
+      '--cache-from', 'maven-builder',
+      '-t', 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/webapp-service:$COMMIT_SHA',
+      '-t', 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/webapp-service:latest',
+      '.'
+    ]
+    waitFor: [ 'build-maven-builder' ]
+
   # =================================================================================
   # PUSH DELLE IMMAGINI
   # =================================================================================
@@ -70,6 +83,11 @@ steps:
     id: 'push-ingest'
     args: ['push', 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/ingest-service', '--all-tags']
     waitFor: ['build-ingest']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-webapp'
+    args: [ 'push', 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/webapp-service', '--all-tags' ]
+    waitFor: [ 'build-webapp' ]
 
   # =================================================================================
   # DEPLOY SU CLOUD RUN
@@ -144,12 +162,37 @@ steps:
       - '${_SUBSCRIPT_MANAGE_DB}'
     waitFor: ['push-ingest']
 
+  # Deploy WEBAPP-SERVICE
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-webapp'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'webapp-service'
+      - '--image'
+      - 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/webapp-service:$COMMIT_SHA'
+      - '--region'
+      - '${_DEPLOY_REGION}'
+      - '--platform'
+      - 'managed'
+      # --allow-unauthenticated rimosso o modificabile a seconda dei settaggi LB. Per test MVP aggiunto:
+      - '--no-invoker-iam-check'
+      - '--service-account'
+      - 'l1-control-plane-sa@mosqhealthagent.iam.gserviceaccount.com'
+      - '--set-env-vars'
+      - 'ADMIN_SERVICE_URL=${_ADMIN_SERVICE_URL}'
+      - '--add-cloudsql-instances'
+      - '${_SUBSCRIPT_MANAGE_DB}'
+    waitFor: [ 'push-webapp' ]
+
 substitutions:
   _ENROLLMENT_URL: 'https://enrollment.vs.berticloud.ai/v1/enrollments'
   _TELEMETRY_URL: 'https://ingest.vs.berticloud.ai/v1/telemetry'
   _SUBSCRIPT_MANAGE_DB: 'mosqhealthagent:europe-west12:control-plan-gateway-db'
   _SUBSCRIPT_MANAGE_DB_SCHEMA: 'subscript_manage_db'
   _DEPLOY_REGION: 'us-central1'
+  _ADMIN_SERVICE_URL: 'https://admin.vs.berticloud.ai/v1/admin'
 
 options:
   #dynamicSubstitutions: true
@@ -162,3 +205,5 @@ images:
   - 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/enrollment-service:latest'
   - 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/ingest-service:$COMMIT_SHA'
   - 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/ingest-service:latest'
+  - 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/webapp-service:$COMMIT_SHA'
+  - 'europe-west12-docker.pkg.dev/mosqhealthagent/control-plane-repo/webapp-service:latest'

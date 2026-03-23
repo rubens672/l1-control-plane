@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: layout('Nuovo Sito', ~{::section})}" xmlns:th="http://www.thymeleaf.org">
+<body>
+<section>
+    <div class="mb-3">
+        <a th:href="@{/sites(tenantId=${form.tenantId})}" class="text-decoration-none">&larr; Torna ai siti</a>
+    </div>
+
+    <div class="card shadow-sm col-md-8 mx-auto">
+        <div class="card-header bg-white">
+            <h4 class="mb-0">Crea Nuovo Sito</h4>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/sites/create}" th:object="${form}" method="post">
+                <input type="hidden" th:field="*{tenantId}">
+                
+                <div class="mb-3">
+                    <label for="name" class="form-label">Nome Sito / Indirizzo</label>
+                    <input type="text" class="form-control" id="name" th:field="*{name}" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="timezone" class="form-label">Timezone</label>
+                    <input type="text" class="form-control" id="timezone" th:field="*{timezone}" required placeholder="Europe/Rome">
+                </div>
+
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-primary text-white">Salva Sito</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+</body>
+</html>

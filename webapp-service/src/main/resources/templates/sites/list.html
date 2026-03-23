@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: layout('Gestione Siti', ~{::section})}" xmlns:th="http://www.thymeleaf.org">
+<body>
+<section>
+    <div class="mb-3">
+        <a href="/tenants" class="text-decoration-none">&larr; Torna ai Tenants</a>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3">Siti per Tenant: <span class="text-primary" th:text="${tenantId}"></span></h1>
+        <a th:href="@{/sites/create(tenantId=${tenantId})}" class="btn btn-primary" th:if="${tenantId != null}">
+            <i class="bi bi-plus-circle"></i> Nuovo Sito
+        </a>
+    </div>
+
+    <div class="card" th:if="${tenantId != null}">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>ID Sito</th>
+                    <th>Nome</th>
+                    <th>Timezone</th>
+                    <th>Status</th>
+                    <th>Azioni</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="site : ${sites}">
+                    <td class="text-monospace text-muted small" th:text="${site.siteId}">id</td>
+                    <td class="fw-bold" th:text="${site.name}">Nome</td>
+                    <td th:text="${site.timezone}">Europe/Rome</td>
+                    <td>
+                        <span th:class="${site.status == 'ACTIVE' ? 'badge bg-success' : 'badge bg-warning'}" th:text="${site.status}">ACTIVE</span>
+                    </td>
+                    <td>
+                        <a th:href="@{/devices(siteId=${site.siteId})}" class="btn btn-sm btn-outline-info" title="Gestisci Dispositivi"><i class="bi bi-router"></i> Devices</a>
+                        
+                        <form th:action="@{/sites/{id}/delete(id=${site.siteId})}" method="post" class="d-inline">
+                            <input type="hidden" name="tenantId" th:value="${tenantId}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Elimina Sito" onclick="return confirm('Attenzione! Verranno eliminati tutti i dispositivi del sito. Procedere?');"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(sites)}">
+                    <td colspan="5" class="text-center text-muted py-4">Nessun sito trovato per questo tenant.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="alert alert-warning" th:if="${tenantId == null}">
+        Seleziona un tenant dalla lista dei tenant per vederne i siti.
+    </div>
+</section>
+</body>
+</html>

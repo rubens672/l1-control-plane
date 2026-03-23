@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: layout('Gestione Dispositivi', ~{::section})}" xmlns:th="http://www.thymeleaf.org">
+<body>
+<section>
+    <div class="mb-3">
+        <button onclick="history.back()" class="btn btn-link text-decoration-none p-0">&larr; Torna indietro</button>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3">Dispositivi nelSito: <span class="text-primary" th:text="${siteId}"></span></h1>
+        
+        <!-- We pass a mock tenantId since our simple API doesn't return site to tenant relation directly, 
+             for a real app we would resolve tenantId server-side from siteId before showing the view -->
+        <a th:href="@{/devices/create(siteId=${siteId}, tenantId='auto')}" class="btn btn-primary" th:if="${siteId != null}">
+            <i class="bi bi-plus-circle"></i> Registra Device
+        </a>
+    </div>
+
+    <div class="card" th:if="${siteId != null}">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>ID Device</th>
+                    <th>Modello</th>
+                    <th>Status</th>
+                    <th>Registrato il</th>
+                    <th>Azioni</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="device : ${devices}">
+                    <td class="text-monospace text-muted small" th:text="${device.deviceId}">id</td>
+                    <td class="fw-bold" th:text="${device.model}">Modello</td>
+                    <td>
+                        <span th:class="${device.status == 'ACTIVE' ? 'badge bg-success' : (device.status == 'PENDING' ? 'badge bg-secondary' : 'badge bg-danger')}" th:text="${device.status}">STATUS</span>
+                    </td>
+                    <td th:text="${#temporals.format(device.createdAt, 'dd/MM/yyyy HH:mm')}">Data</td>
+                    <td>
+                        <a th:href="@{/devices/{id}(id=${device.deviceId})}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i> Dettagli</a>
+                        
+                        <form th:action="@{/devices/{id}/delete(id=${device.deviceId})}" method="post" class="d-inline">
+                            <input type="hidden" name="siteId" th:value="${siteId}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Elimina Device" onclick="return confirm('Attenzione: Cancellando il dispositivo le credenziali esistenti smetteranno di funzionare e perderai la telemetria. Vuoi confermare?');"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(devices)}">
+                    <td colspan="5" class="text-center text-muted py-4">Nessun dispositivo registrato in questo sito.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="alert alert-warning" th:if="${siteId == null}">
+        Seleziona un sito per visualizzarne i dispositivi.
+    </div>
+</section>
+</body>
+</html>
