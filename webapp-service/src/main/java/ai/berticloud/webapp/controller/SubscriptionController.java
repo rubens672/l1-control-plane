@@ -19,6 +19,16 @@ public class SubscriptionController {
         this.adminApiClient = adminApiClient;
     }
 
+    @GetMapping("/create")
+    public String createForm(@RequestParam("tenantId") String tenantId, Model model) {
+        CreateSubscriptionForm form = new CreateSubscriptionForm();
+        form.setTenantId(tenantId);
+        form.setValidDays(365);
+        form.setMaxDevices(10);
+        model.addAttribute("form", form);
+        return "subscriptions/create";
+    }
+
     @PostMapping("/create")
     public String create(@ModelAttribute CreateSubscriptionForm form) {
         adminApiClient.createSubscription(form);

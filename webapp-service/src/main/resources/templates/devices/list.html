@@ -3,15 +3,15 @@
 <body>
 <section>
     <div class="mb-3">
-        <button onclick="history.back()" class="btn btn-link text-decoration-none p-0">&larr; Torna indietro</button>
+        <a th:if="${tenantId != null}" th:href="@{/sites(tenantId=${tenantId})}" class="text-decoration-none">&larr; Torna ai Siti</a>
+        <a th:if="${tenantId == null}" href="/tenants" class="text-decoration-none">&larr; Torna ai Tenants</a>
     </div>
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1 class="h3">Dispositivi nelSito: <span class="text-primary" th:text="${siteId}"></span></h1>
         
-        <!-- We pass a mock tenantId since our simple API doesn't return site to tenant relation directly, 
-             for a real app we would resolve tenantId server-side from siteId before showing the view -->
-        <a th:href="@{/devices/create(siteId=${siteId}, tenantId='auto')}" class="btn btn-primary" th:if="${siteId != null}">
+        <!-- App now passes correct tenantId to avoid loops -->
+        <a th:href="@{/devices/create(siteId=${siteId}, tenantId=${tenantId != null ? tenantId : 'auto'})}" class="btn btn-primary" th:if="${siteId != null}">
             <i class="bi bi-plus-circle"></i> Registra Device
         </a>
     </div>
@@ -37,11 +37,11 @@
                     </td>
                     <td th:text="${#temporals.format(device.createdAt, 'dd/MM/yyyy HH:mm')}">Data</td>
                     <td>
-                        <a th:href="@{/devices/{id}(id=${device.deviceId})}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i> Dettagli</a>
+                        <a th:href="@{/devices/{id}(id=${device.deviceId}, siteId=${siteId}, tenantId=${tenantId})}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i> Dettagli</a>
                         
                         <form th:action="@{/devices/{id}/delete(id=${device.deviceId})}" method="post" class="d-inline">
                             <input type="hidden" name="siteId" th:value="${siteId}">
-                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Elimina Device" onclick="return confirm('Attenzione: Cancellando il dispositivo le credenziali esistenti smetteranno di funzionare e perderai la telemetria. Vuoi confermare?');"><i class="bi bi-trash"></i></button>
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Elimina Device" onclick="return confirm('Attenzione: Cancellando il dispositivo le credenziali esistenti smetteranno di funzionare e perderai la telemetria. Vuoi confermare?');"><i class="bi bi-trash"></i> Elimina</button>
                         </form>
                     </td>
                 </tr>

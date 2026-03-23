@@ -3,7 +3,7 @@
 <body>
 <section>
     <div class="mb-3">
-        <a th:href="@{/devices(siteId=${form.siteId})}" class="text-decoration-none">&larr; Torna ai dispositivi</a>
+        <a th:href="@{/devices(siteId=${form.siteId}, tenantId=${form.tenantId})}" class="text-decoration-none">&larr; Torna ai dispositivi</a>
     </div>
 
     <div class="card shadow-sm col-md-8 mx-auto">

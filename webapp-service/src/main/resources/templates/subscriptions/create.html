@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: layout('Gestisci Subscription', ~{::section})}" xmlns:th="http://www.thymeleaf.org">
+<body>
+<section>
+    <div class="mb-3">
+        <a href="/tenants" class="text-decoration-none">&larr; Torna alla lista</a>
+    </div>
+
+    <div class="card shadow-sm col-md-8 mx-auto">
+        <div class="card-header bg-white">
+            <h4 class="mb-0">Attiva o Modifica Subscription</h4>
+        </div>
+        <div class="card-body">
+            <p class="text-muted">Imposta i parametri commerciali per il tenant <strong class="text-primary" th:text="${form.tenantId}"></strong>. Questa operazione creerà un nuovo abbonamento o sovrascriverà quello esistente.</p>
+            
+            <form th:action="@{/subscriptions/create}" th:object="${form}" method="post">
+                <input type="hidden" th:field="*{tenantId}">
+                
+                <div class="mb-3">
+                    <label for="validDays" class="form-label">Durata validità (Giorni)</label>
+                    <input type="number" class="form-control" id="validDays" th:field="*{validDays}" required min="1">
+                    <div class="form-text">es. 365 per un piano annuale.</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="maxDevices" class="form-label">Limite Dispositivi (Max Devices)</label>
+                    <input type="number" class="form-control" id="maxDevices" th:field="*{maxDevices}" required min="1">
+                    <div class="form-text">Numero massimo di edge devices per questo tenant.</div>
+                </div>
+
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-success text-white"><i class="bi bi-card-checklist"></i> Salva Subscription</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+</body>
+</html>

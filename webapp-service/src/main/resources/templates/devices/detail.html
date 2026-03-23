@@ -3,7 +3,8 @@
 <body>
 <section>
     <div class="mb-4">
-        <button onclick="history.back()" class="btn btn-link text-decoration-none p-0">&larr; Torna alla lista</button>
+        <a th:if="${siteId != null}" th:href="@{/devices(siteId=${siteId}, tenantId=${tenantId})}" class="text-decoration-none">&larr; Torna ai dispositivi</a>
+        <a th:if="${siteId == null}" href="javascript:history.back()" class="text-decoration-none">&larr; Torna indietro</a>
     </div>
 
     <div class="row">

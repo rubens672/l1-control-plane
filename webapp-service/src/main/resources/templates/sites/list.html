@@ -34,11 +34,11 @@
                         <span th:class="${site.status == 'ACTIVE' ? 'badge bg-success' : 'badge bg-warning'}" th:text="${site.status}">ACTIVE</span>
                     </td>
                     <td>
-                        <a th:href="@{/devices(siteId=${site.siteId})}" class="btn btn-sm btn-outline-info" title="Gestisci Dispositivi"><i class="bi bi-router"></i> Devices</a>
+                        <a th:href="@{/devices(siteId=${site.siteId}, tenantId=${tenantId})}" class="btn btn-sm btn-outline-info" title="Gestisci Dispositivi"><i class="bi bi-router"></i> Devices</a>
                         
                         <form th:action="@{/sites/{id}/delete(id=${site.siteId})}" method="post" class="d-inline">
                             <input type="hidden" name="tenantId" th:value="${tenantId}">
-                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Elimina Sito" onclick="return confirm('Attenzione! Verranno eliminati tutti i dispositivi del sito. Procedere?');"><i class="bi bi-trash"></i></button>
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Elimina Sito" onclick="return confirm('Attenzione! Verranno eliminati tutti i dispositivi del sito. Procedere?');"><i class="bi bi-trash"></i> Elimina</button>
                         </form>
                     </td>
                 </tr>

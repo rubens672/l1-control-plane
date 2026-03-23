@@ -8,7 +8,7 @@ spring:
   security:
     user:
       name: admin
-      password: password123
+      password: Esscher1!
       roles: ADMIN
 
 app:

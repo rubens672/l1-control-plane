@@ -92,10 +92,10 @@ public class AdminRepository {
       INSERT INTO control_plane.devices(
         device_id, tenant_id, site_id, status, model, onboarded_at, last_seen_at,
         max_msgs_per_min, expected_fingerprint_sha256, cert_serial, cert_not_after,
-        issuer_dn, subject_dn, bootstrap_token_hash, bootstrap_expires_at
+        issuer_dn, subject_dn, bootstrap_token_hash, bootstrap_expires_at, created_at, updated_at
       )
-      VALUES(?, ?, ?, 'PENDING', ?, NULL, NULL, 60, NULL, NULL, NULL, NULL, NULL, NULL, NULL)
-      """, deviceId, tenantId, siteId, model);
+      VALUES(?, (SELECT tenant_id FROM control_plane.sites WHERE site_id = ?), ?, 'PENDING', ?, NULL, NULL, 60, NULL, NULL, NULL, NULL, NULL, NULL, NULL, now(), now())
+      """, deviceId, siteId, siteId, model);
   }
 
   public int deleteDeviceById(String deviceId) {
@@ -117,21 +117,23 @@ public class AdminRepository {
   }
 
   public int deleteSubscriptionById(String tenantId) {
-    int deletedRows = jdbc.update("""
-    DELETE FROM control_plane.subscriptions
+    int updatedRows = jdbc.update("""
+    UPDATE control_plane.subscriptions
+    SET status = 'CANCELED', updated_at = now()
     WHERE tenant_id = ?
     """, tenantId);
-    log.debug("Deleted {} rows for subscription: {}", deletedRows, tenantId);
-    return deletedRows;
+    log.debug("Canceled {} subscription for tenant: {}", updatedRows, tenantId);
+    return updatedRows;
   }
 
   public int deleteTenantById(String tenantId) {
-    int deletedRows = jdbc.update("""
-    DELETE FROM control_plane.tenants
+    int updatedRows = jdbc.update("""
+    UPDATE control_plane.tenants
+    SET status = 'INACTIVE', updated_at = now()
     WHERE tenant_id = ?
     """, tenantId);
-    log.debug("Deleted {} rows for tenant: {}", deletedRows, tenantId);
-    return deletedRows;
+    log.debug("Suspended {} tenant: {}", updatedRows, tenantId);
+    return updatedRows;
   }
 
   /**

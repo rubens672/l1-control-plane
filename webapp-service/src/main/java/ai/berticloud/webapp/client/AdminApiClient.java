@@ -25,7 +25,11 @@ public class AdminApiClient {
     }
 
     public void createTenant(CreateTenantForm form) {
-        restTemplate.postForEntity(baseUrl + "/tenants", form, Void.class);
+        java.util.Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("tenantId", "tnt-" + java.util.UUID.randomUUID().toString().substring(0, 8));
+        payload.put("name", form.getName());
+        payload.put("plan", form.getPlan());
+        restTemplate.postForEntity(baseUrl + "/tenants", payload, Void.class);
     }
 
     public List<TenantDto> listTenants() {
@@ -51,7 +55,13 @@ public class AdminApiClient {
     }
 
     public void createSite(CreateSiteForm form) {
-        restTemplate.postForEntity(baseUrl + "/sites", form, Void.class);
+        java.util.Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("siteId", "site-" + java.util.UUID.randomUUID().toString().substring(0, 8));
+        payload.put("tenantId", form.getTenantId());
+        payload.put("name", form.getName());
+        payload.put("timezone", form.getTimezone());
+        payload.put("status", "ACTIVE");
+        restTemplate.postForEntity(baseUrl + "/sites", payload, Void.class);
     }
 
     public List<SiteDto> listSitesByTenant(String tenantId) {
@@ -65,7 +75,12 @@ public class AdminApiClient {
     }
 
     public void createDevice(CreateDeviceForm form) {
-        restTemplate.postForEntity(baseUrl + "/devices", form, Void.class);
+        java.util.Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("deviceId", "dev-" + java.util.UUID.randomUUID().toString().substring(0, 8));
+        payload.put("tenantId", form.getTenantId());
+        payload.put("siteId", form.getSiteId());
+        payload.put("model", form.getModel());
+        restTemplate.postForEntity(baseUrl + "/devices", payload, Void.class);
     }
 
     public List<DeviceDto> listDevicesBySite(String siteId) {

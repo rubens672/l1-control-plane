@@ -31,12 +31,9 @@
                         <a th:href="@{/sites(tenantId=${tenant.tenantId})}" class="btn btn-sm btn-outline-info" title="Gestisci Siti"><i class="bi bi-building"></i> Siti</a>
 
                         <!-- Mini form for subscription for demo purposes -->
-                        <form th:action="@{/subscriptions/create}" method="post" class="d-inline" th:if="${tenant.status == 'ACTIVE'}">
-                            <input type="hidden" name="tenantId" th:value="${tenant.tenantId}" />
-                            <input type="hidden" name="validDays" value="365" />
-                            <input type="hidden" name="maxDevices" value="10" />
-                            <button type="submit" class="btn btn-sm btn-outline-success" title="Crea/Rinnova Sub"><i class="bi bi-card-checklist"></i> Sub</button>
-                        </form>
+                        <a th:href="@{/subscriptions/create(tenantId=${tenant.tenantId})}" class="btn btn-sm btn-outline-success" th:if="${tenant.status == 'ACTIVE'}" title="Crea/Rinnova Sub">
+                            <i class="bi bi-card-checklist"></i> Sub
+                        </a>
                         
                         <!-- Delete Subscription -->
                         <form th:action="@{/subscriptions/{id}/delete(id=${tenant.tenantId})}" method="post" class="d-inline" th:if="${tenant.status == 'ACTIVE'}">
@@ -45,7 +42,7 @@
 
                         <!-- Delete Tenant -->
                         <form th:action="@{/tenants/{id}/delete(id=${tenant.tenantId})}" method="post" class="d-inline">
-                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Elimina Tenant" onclick="return confirm('ATTENZIONE: Questo eliminerà anche Tutti i Siti e i Devices associati. Procedere?');"><i class="bi bi-trash"></i></button>
+                            <button type="submit" class="btn btn-sm btn-outline-warning" title="Sospendi Tenant" onclick="return confirm('Sicuro di sospendere questo Tenant? I dati non verranno eliminati.');"><i class="bi bi-pause-circle"></i> Sospendi</button>
                         </form>
                     </td>
                 </tr>
