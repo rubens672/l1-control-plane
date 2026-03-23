@@ -7,10 +7,12 @@ COPY shared/pom.xml shared/
 COPY admin-service/pom.xml admin-service/
 COPY enrollment-service/pom.xml enrollment-service/
 COPY ingest-service/pom.xml ingest-service/
+COPY webapp-service/pom.xml webapp-service/
 COPY shared/src shared/src
 COPY admin-service/src admin-service/src
 COPY enrollment-service/src enrollment-service/src
 COPY ingest-service/src ingest-service/src
+COPY webapp-service/src webapp-service/src
 
 # Esegui la build di tutti i moduli in parallelo (skipping test per velocità in fase di image build - i test dovrebbero essere gestiti in un job separato della CI)
 RUN mvn clean package -DskipTests -T 1C
