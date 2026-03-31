@@ -2,10 +2,16 @@ package ai.berticloud.enroll.api;
 
 import ai.berticloud.enroll.api.dto.SignCsrRequest;
 import ai.berticloud.enroll.api.dto.SignCsrResponse;
-import ai.berticloud.enroll.ca.CaMaterialLoader;
-import ai.berticloud.enroll.ca.CsrAndCertService;
+import ai.berticloud.enroll.ca.CsrValidator;
+import ai.berticloud.enroll.ca.issuer.CertificateIssuer;
+import ai.berticloud.enroll.ca.issuer.IssuedCertificate;
 import ai.berticloud.enroll.db.EnrollmentRepository;
 import ai.berticloud.enroll.security.BootstrapTokenService;
+import ai.berticloud.enroll.util.CryptoUtil;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.openssl.PEMParser;
+import java.io.StringReader;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,17 +74,17 @@ public class EnrollmentController {
 
   private final EnrollmentRepository repo;
   private final BootstrapTokenService tokenSvc;
-  private final CaMaterialLoader caLoader;
-  private final CsrAndCertService csrSvc;
+  private final CsrValidator csrValidator;
+  private final CertificateIssuer certificateIssuer;
 
   public EnrollmentController(EnrollmentRepository repo,
                               BootstrapTokenService tokenSvc,
-                              CaMaterialLoader caLoader,
-                              CsrAndCertService csrSvc) {
+                              CsrValidator csrValidator,
+                              CertificateIssuer certificateIssuer) {
     this.repo = repo;
     this.tokenSvc = tokenSvc;
-    this.caLoader = caLoader;
-    this.csrSvc = csrSvc;
+    this.csrValidator = csrValidator;
+    this.certificateIssuer = certificateIssuer;
   }
 
   @PostMapping("/{deviceId}:signCsr")
@@ -127,7 +133,7 @@ public class EnrollmentController {
 
       // 6) Parse CSR e valida SAN:
       //    - deviceId nel path deve combaciare col SAN.deviceId (anti spoof)
-      var parsed = csrSvc.parseAndValidateCsr(req.csrPem(), deviceId);
+      var parsed = csrValidator.parseAndValidateCsr(req.csrPem(), deviceId);
 
       // 7) Guardrail: tenant/site del SAN devono combaciare con DB.
       if (!parsed.identity().tenantId().equals(row.tenantId()) || !parsed.identity().siteId().equals(row.siteId())) {
@@ -135,27 +141,28 @@ public class EnrollmentController {
         return ResponseEntity.badRequest().body(Map.of("error", "san_tenant_site_mismatch"));
       }
 
-      // 8) Carica materiale CA da Secret Manager e firma cert client (EKU clientAuth + SAN copiato dal CSR).
-      var ca = caLoader.load();
-      var signed = csrSvc.sign(ca, parsed);
+      // 8) Invia richiesta a GCP CAS per firma certificato client (EKU clientAuth + SAN copiato dal CSR).
+      IssuedCertificate issued = certificateIssuer.issueDeviceCertificate(deviceId, req.csrPem(), parsed.urn());
 
       // 9) Persistenza: aggiorna device e inserisce history (in transazione).
-      X509Certificate cert = signed.cert();
+      // Parse PEM for extracting Fingerprint, Issuer, Subject fields
+      X509Certificate cert = parsePemCert(issued.clientCertPem());
       String issuerDn = cert.getIssuerX500Principal().getName();
       String subjectDn = cert.getSubjectX500Principal().getName();
+      String fpHex = CryptoUtil.sha256Hex(cert.getEncoded());
 
       repo.activateAndStoreCert(
               deviceId,
-              signed.fingerprintSha256Hex(),
-              signed.certSerialHex(),
-              signed.notAfter(),
+              fpHex,
+              issued.serialNumber(),
+              issued.notAfter(),
               issuerDn,
               subjectDn
       );
 
       // 10) Response: cert PEM + chain PEM (il device li installerà per chiamare ingest con mTLS).
-      String certPem = pemEncode(cert);
-      String chainPem = ca.chainPem();
+      String certPem = issued.clientCertPem();
+      String chainPem = issued.chainPem();
       
       log.info("Successfully enrolled device: {}", deviceId);
       return ResponseEntity.ok(new SignCsrResponse(certPem, chainPem));
@@ -175,12 +182,13 @@ public class EnrollmentController {
     return s.substring(7).trim();
   }
 
-  private static String pemEncode(X509Certificate cert) {
-    try {
-      String b64 = java.util.Base64.getMimeEncoder(64, "\n".getBytes()).encodeToString(cert.getEncoded());
-      return "-----BEGIN CERTIFICATE-----\n" + b64 + "\n-----END CERTIFICATE-----\n";
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+  private X509Certificate parsePemCert(String pem) throws Exception {
+    try (PEMParser p = new PEMParser(new StringReader(pem))) {
+      Object o = p.readObject();
+      if (!(o instanceof X509CertificateHolder h)) {
+          throw new IllegalArgumentException("Invalid cert PEM");
+      }
+      return new JcaX509CertificateConverter().getCertificate(h);
     }
   }
 }

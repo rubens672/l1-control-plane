@@ -74,6 +74,12 @@
       <groupId>com.google.cloud</groupId>
       <artifactId>spring-cloud-gcp-starter-logging</artifactId>
     </dependency>
+
+    <!-- Google Cloud CAS (Certificate Authority Service) -->
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-security-private-ca</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
