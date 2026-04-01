@@ -8,3 +8,29 @@ gcloud config set project $PROJECT_ID
 
 #avvio della connessione proxy x Cloud Sql
 ./cloud-sql-proxy mosqhealthagent:europe-west12:control-plan-gateway-db &
+
+
+#generazione certificato csr di test
+# Se usi una config unificata per key+CSR (più semplice):
+openssl req -new -newkey rsa:2048 -nodes -keyout device.key -out device.csr -reqexts v3_req -config <(
+cat <<-EOF
+[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+req_extensions = v3_req
+distinguished_name = dn
+
+[dn]
+CN = mio-device-001
+
+[v3_req]
+basicConstraints = CA:FALSE
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = clientAuth
+subjectAltName = @alt_names
+
+[alt_names]
+URI.1 = urn:berticloudai:tenant:tenant-a:site:site-rome:device:mio-device-001
+EOF
+)
