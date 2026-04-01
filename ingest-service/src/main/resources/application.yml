@@ -27,7 +27,7 @@ spring:
 
 app:
   pubsub:
-    topic: projects/mosqhealthagent/topics/edge-telemetry
+    topic: ${INGEST_SERVICE_TOPIC} #projects/mosqhealthagent/topics/edge-telemetry
   cache:
     allowTtlMinutes: 10
     denyTtlSeconds: 90

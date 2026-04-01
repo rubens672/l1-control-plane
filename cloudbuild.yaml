@@ -157,7 +157,7 @@ steps:
       - '--service-account'
       - 'l1-control-plane-sa@mosqhealthagent.iam.gserviceaccount.com'
       - '--set-env-vars'
-      - 'SUBSCRIPT_MANAGE_DB_SCHEMA=${_SUBSCRIPT_MANAGE_DB_SCHEMA},SUBSCRIPT_MANAGE_DB=${_SUBSCRIPT_MANAGE_DB}'
+      - 'SUBSCRIPT_MANAGE_DB_SCHEMA=${_SUBSCRIPT_MANAGE_DB_SCHEMA},SUBSCRIPT_MANAGE_DB=${_SUBSCRIPT_MANAGE_DB},INGEST_SERVICE_TOPIC=${_INGEST_SERVICE_TOPIC}'
       - '--add-cloudsql-instances'
       - '${_SUBSCRIPT_MANAGE_DB}'
     waitFor: ['push-ingest']
@@ -193,6 +193,7 @@ substitutions:
   _SUBSCRIPT_MANAGE_DB_SCHEMA: 'subscript_manage_db'
   _DEPLOY_REGION: 'us-central1'
   _ADMIN_SERVICE_URL: 'https://admin.vs.berticloud.ai/v1/admin'
+  _INGEST_SERVICE_TOPIC: 'projects/mosqhealthagent/topics/edge-telemetry'
 
 options:
   #dynamicSubstitutions: true

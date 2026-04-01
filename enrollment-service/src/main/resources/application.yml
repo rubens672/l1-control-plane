@@ -32,7 +32,7 @@ gcp:
   cas:
     project-id: ${GCP_PROJECT_ID:782332691073}
     location: ${CAS_LOCATION:europe-west1}
-    ca-pool-id: ${CAS_POOL_ID:device-pool}
+    ca-pool-id: ${CAS_POOL_ID:iot-device-ca-pool}
     # Se commentato, sceglierà la CA attiva nel pool automaticamente (raccomandato)
     # certificate-authority-id: device-ca
     lifetime-days: 365

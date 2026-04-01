@@ -1,0 +1,10 @@
+# Authenticate with Google Cloud
+gcloud auth login
+gcloud auth application-default login
+
+# Set your project ID
+export PROJECT_ID="mosqhealthagent"
+gcloud config set project $PROJECT_ID
+
+#avvio della connessione proxy x Cloud Sql
+./cloud-sql-proxy mosqhealthagent:europe-west12:control-plan-gateway-db &
