@@ -40,7 +40,7 @@ import java.util.Base64;
 public class BootstrapTokenIssuer {
   private final byte[] hmacKey;
   private final long ttlMinutes;
-  private final String enrollmentUrl;
+  private final String enrollUrl;
   private final String telemetryUrl;
 /*
 * comando per la creazione randomica della chiave:
@@ -49,14 +49,14 @@ public class BootstrapTokenIssuer {
   public BootstrapTokenIssuer(
       @Value("${app.bootstrap.hmacKeyBase64}") String hmacKeyBase64,
       @Value("${app.bootstrap.tokenTtlMinutes}") long ttlMinutes,
-      @Value("${app.bootstrap.enrollmentUrl}") String enrollmentUrl,
+      @Value("${app.bootstrap.enrollmentUrl}") String enrollUrl,
       @Value("${app.bootstrap.telemetryUrl}") String telemetryUrl
   ) {
     System.out.println("hmacKeyBase64: " + hmacKeyBase64);
-    System.out.println("enrollmentUrl: " + enrollmentUrl);
+    System.out.println("enrollmentUrl: " + enrollUrl);
     this.hmacKey = Base64.getDecoder().decode(hmacKeyBase64);
     this.ttlMinutes = ttlMinutes;
-    this.enrollmentUrl = enrollmentUrl;
+    this.enrollUrl = enrollUrl;
     this.telemetryUrl = telemetryUrl;
   }
 
@@ -71,7 +71,7 @@ public class BootstrapTokenIssuer {
     String token = CryptoUtil.randomTokenUrlSafe(32); // ~256 bit
     String hashHex = CryptoUtil.hmacSha256Hex(hmacKey, token);
     Instant exp = Instant.now().plus(ttlMinutes, ChronoUnit.MINUTES);
-    return new IssuedToken(deviceId, token, hashHex, exp, enrollmentUrl, telemetryUrl);
+    return new IssuedToken(deviceId, token, hashHex, exp, enrollUrl, telemetryUrl);
   }
 
   /**
@@ -84,6 +84,6 @@ public class BootstrapTokenIssuer {
           String tokenPlain,
           String tokenHashHex,
           Instant expiresAt,
-          String enrollmentUrl,
+          String enrollUrl,
           String telemetryUrl) {}
 }

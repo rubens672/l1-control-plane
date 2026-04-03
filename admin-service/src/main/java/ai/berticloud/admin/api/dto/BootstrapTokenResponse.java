@@ -31,7 +31,7 @@ public record BootstrapTokenResponse(
         String siteId,
         String deviceId,
         String bootstrapToken,  // segreto temporaneo one-time
-        String enrollmentUrl,
+        String enrollUrl,
         String telemetryUrl,
         Boolean telemetryUseTls,
         Boolean localTestHeaders

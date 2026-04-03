@@ -206,7 +206,7 @@ public class AdminController {
       var t = issuer.issueOneTimeToken(deviceId);
       repo.setBootstrapToken(deviceId, t.tokenHashHex(), t.expiresAt());
       log.info("Successfully issued bootstrap token for device: {}", deviceId);
-      return ResponseEntity.ok(new BootstrapTokenResponse(ts.tenantId(), ts.siteId(), deviceId, t.tokenPlain(), t.enrollmentUrl(), t.telemetryUrl(), false, true));
+      return ResponseEntity.ok(new BootstrapTokenResponse(ts.tenantId(), ts.siteId(), deviceId, t.tokenPlain(), t.enrollUrl(), t.telemetryUrl(), false, true));
     }catch (EmptyResultDataAccessException e){
       log.error("No matching tenants and sites for device: {}", deviceId, e);
       return ResponseEntity.status(500).body(Map.of("error", "No matching tenants and sites"));
