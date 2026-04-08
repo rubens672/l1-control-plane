@@ -1,6 +1,5 @@
 package ai.berticloud.ingest.auth;
 
-import com.google.cloud.spring.secretmanager.SecretManagerTemplate;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.openssl.PEMParser;
@@ -18,19 +17,15 @@ import java.security.cert.X509Certificate;
 
 @Service
 public class RootCaPublicKeyProvider {
-    private final SecretManagerTemplate sm;
-    private final String certSecret;
+    private final String certPem;
     private PublicKey rootCaPublicKey;
 
-    public RootCaPublicKeyProvider(SecretManagerTemplate sm,
-                                   @Value("${app.ca.issuingCertSecret}") String certSecret) {
-        this.sm = sm;
-        this.certSecret = certSecret;
+    public RootCaPublicKeyProvider(@Value("${app.ca.issuingCertSecret}") String certPem) {
+        this.certPem = certPem;
     }
 
     @PostConstruct
     public void init() {
-        String certPem = sm.getSecretString(certSecret);
         X509Certificate cert = parseCert(certPem);
         this.rootCaPublicKey = cert.getPublicKey();
     }
