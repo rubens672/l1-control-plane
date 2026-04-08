@@ -13,6 +13,4 @@ public class BootstrapTokenResponse {
     private String bootstrapToken;
     private String enrollmentUrl;
     private String telemetryUrl;
-    private Boolean telemetryUseTls;
-    private Boolean localTestHeaders;
 }
