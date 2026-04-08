@@ -3,7 +3,7 @@ package ai.berticloud.enroll.api;
 import ai.berticloud.enroll.api.dto.SignCsrRequest;
 import ai.berticloud.enroll.api.dto.SignCsrResponse;
 import ai.berticloud.enroll.ca.CaMaterialLoader;
-import ai.berticloud.enroll.ca.CsrAndCertService;
+import ai.berticloud.enroll.ca.CertificateIssuer;
 import ai.berticloud.enroll.db.EnrollmentRepository;
 import ai.berticloud.enroll.security.BootstrapTokenService;
 import jakarta.validation.Valid;
@@ -69,12 +69,12 @@ public class EnrollmentController {
   private final EnrollmentRepository repo;
   private final BootstrapTokenService tokenSvc;
   private final CaMaterialLoader caLoader;
-  private final CsrAndCertService csrSvc;
+  private final CertificateIssuer csrSvc;
 
   public EnrollmentController(EnrollmentRepository repo,
                               BootstrapTokenService tokenSvc,
                               CaMaterialLoader caLoader,
-                              CsrAndCertService csrSvc) {
+                              CertificateIssuer csrSvc) {
     this.repo = repo;
     this.tokenSvc = tokenSvc;
     this.caLoader = caLoader;

@@ -4,6 +4,11 @@ package ai.berticloud.shared.identity;
  * Copyright (c) 2026 Berti AI & Cloud Architecture. All rights reserved.
  */
 
+import java.security.cert.CertificateParsingException;
+import java.security.cert.X509Certificate;
+import java.util.List;
+import java.util.Collection;
+
 /**
  * Selettore della SAN URI corretta quando una richiesta contiene più SAN.
  *
@@ -48,5 +53,21 @@ public final class SanUriSelector {
       if (s.startsWith("urn:berticloudai:tenant:") && s.contains(":site:") && s.contains(":device:")) return s;
     }
     return null;
+  }
+
+  /**
+   * Estrae la URN principale direttamente dal certificato.
+   */
+  public static String pickDeviceUrnFromCert(X509Certificate cert) throws CertificateParsingException {
+      Collection<List<?>> sans = cert.getSubjectAlternativeNames();
+      if (sans == null) return null;
+      for (List<?> san : sans) {
+          if ((Integer) san.get(0) == 6) { // Tag 6 = URI
+              String uri = (String) san.get(1);
+              String urn = pickDeviceUrn(uri);
+              if (urn != null) return urn;
+          }
+      }
+      return null;
   }
 }

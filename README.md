@@ -236,19 +236,37 @@ Accesso **solo via mTLS**.
 
 ------------------------------------------------------------------------
 
-## Sicurezza ingest
+## Sicurezza ingest e Application mTLS
 
-Il Load Balancer valida il certificato client e inoltra header:
+L'architettura aggiornata prevede la validazione dei certificati a livello Application Layer (dentro Spring Boot) senza affidarsi al mTLS del Load Balancer (Google CAS).
 
-client_cert_present client_cert_chain_verified
-client_cert_sha256_fingerprint client_cert_uri_sans
+Il Load Balancer effettua la terminazione HTTPS standard. 
+Il device Edge inserisce il proprio certificato nel seguente header HTTP:
 
-L'ingest-service:
+`X-Device-Cert`
 
-1.  legge SAN URI
-2.  costruisce DeviceIdentity
-3.  verifica DB (cache + Cloud SQL)
-4.  pubblica su Pub/Sub
+L'ingest-service, tramite una Security Filter Chain dedicata:
+
+1. Estrae il certificato PEM dall'header `X-Device-Cert`.
+2. Verifica la firma rispetto alla Root CA Public Key in memoria (caricata da GCP Secret Manager).
+3. Verifica la validità temporale del certificato.
+4. Estrae la SAN URI per ricostruire la `DeviceIdentity`.
+5. Valida in DB (cache + Cloud SQL).
+6. Pubblica su Pub/Sub.
+
+------------------------------------------------------------------------
+
+# Setup Root CA con GCP Secret Manager
+
+Per utilizzare la nuova architettura mTLS a livello applicativo, è necessario configurare la Root CA:
+
+1.  **Genera offline una Root CA (chiavi RSA e certificato x509 autofirmato)**.
+2.  **Carica la chiave privata** per la firma nel Secret Manager (`enrollment-service` la userà per generare i certificati client):
+    `gcloud secrets create CA_ISSUING_KEY_SECRET --data-file=ca-key.pem`
+3.  **Carica il certificato pubblico** nel Secret Manager (`ingest-service` lo userà per verificare le richieste device):
+    `gcloud secrets create CA_ISSUING_CERT_SECRET --data-file=ca-cert.pem`
+
+Configura l'`application.yml` dei vari servizi per puntare ai secret ID corretti (ad esempio project ID `383163155925`).
 
 ------------------------------------------------------------------------
 

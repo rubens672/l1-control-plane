@@ -30,8 +30,8 @@ app:
     hmacKeyBase64: ${sm://projects/782332691073/secrets/BOOTSTRAP_HMAC_KEY_BASE64/versions/1}
   ca:
     # Secret Manager resource ids (version latest) o direttamente value via env
-    issuingKeySecret: ${sm://projects/782332691073/secrets/CA_ISSUING_KEY_SECRET/versions/1} #${CA_ISSUING_KEY_SECRET}     # es: projects/<p>/secrets/issuingCA-key/versions/latest
-    issuingCertSecret: ${sm://projects/782332691073/secrets/CA_ISSUING_CERT_SECRET/versions/1} #${CA_ISSUING_CERT_SECRET}   # es: projects/<p>/secrets/issuingCA-cert/versions/latest
+    issuingKeySecret: ${sm://projects/383163155925/secrets/CA_ISSUING_KEY_SECRET/versions/1} #${CA_ISSUING_KEY_SECRET}     # es: projects/<p>/secrets/issuingCA-key/versions/latest
+    issuingCertSecret: ${sm://projects/383163155925/secrets/CA_ISSUING_CERT_SECRET/versions/1} #${CA_ISSUING_CERT_SECRET}   # es: projects/<p>/secrets/issuingCA-cert/versions/latest
     #chainSecret: ${sm://projects/383163155925/secrets/CA_CHAIN_SECRET/versions/1} #${CA_CHAIN_SECRET}                # opzionale; se non c'è, usa issuingCert come chain
   cert:
     validityDays: 365

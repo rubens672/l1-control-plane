@@ -61,12 +61,12 @@ import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
  * @since 4 March 2026
  */
 @Service
-public class CsrAndCertService {
+public class LocalCertificateIssuer implements CertificateIssuer {
   private static final SecureRandom RND = new SecureRandom();
 
   private final int validityDays;
 
-  public CsrAndCertService(@Value("${app.cert.validityDays}") int validityDays) {
+  public LocalCertificateIssuer(@Value("${app.cert.validityDays}") int validityDays) {
     this.validityDays = validityDays;
   }
 
@@ -76,6 +76,7 @@ public class CsrAndCertService {
    * - SAN abbia il formato URN previsto
    * - deviceId nel SAN coincida con deviceId passato nell'endpoint (anti spoof)
    */
+  @Override
   public ParsedCsr parseAndValidateCsr(String csrPem, String expectedDeviceId) throws Exception{
     PKCS10CertificationRequest csr = parseCsr(csrPem);
 
@@ -103,6 +104,7 @@ public class CsrAndCertService {
    * - notAfter
    * - fingerprint SHA-256 hex del DER
    */
+  @Override
   public SignedCert sign(CaMaterial ca, ParsedCsr parsed) throws Exception{
     try {
       Instant now = Instant.now();
@@ -204,9 +206,4 @@ public class CsrAndCertService {
     throw new IllegalArgumentException("CSR SAN URI missing or invalid");
   }
 
-  /** Bundle parse CSR: CSR + identity + urn */
-  public record ParsedCsr(PKCS10CertificationRequest csr, DeviceIdentity identity, String urn) {}
-
-  /** Bundle cert firmato + metadati usati per DB persistence */
-  public record SignedCert(X509Certificate cert, String certSerialHex, Instant notAfter, String fingerprintSha256Hex) {}
 }

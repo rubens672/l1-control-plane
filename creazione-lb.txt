@@ -1,0 +1,142 @@
+# 1.  Abilitare le API necessarie
+gcloud services enable compute.googleapis.com networksecurity.googleapis.com certificatemanager.googleapis.com
+
+
+YOUR_STATIC_IP_NAME=vs-lb-static-ip
+YOUR_REGION=us-central1
+
+# 2. Riservare un indirizzo IP esterno statico globale
+gcloud compute addresses create $YOUR_STATIC_IP_NAME \
+    --network-tier=PREMIUM \
+    --ip-version=IPV4 \
+    --global
+
+
+STATIC_IP_ADDRESS=$(gcloud compute addresses describe $YOUR_STATIC_IP_NAME --format="get(address)" --global)
+echo "Indirizzo IP statico riservato: $STATIC_IP_ADDRESS"
+
+Indirizzo IP statico riservato: 34.149.59.228
+
+
+# 3. Creare certificati SSL gestiti da Google
+gcloud compute ssl-certificates create admin-vs-berticloud-ai-cert \
+    --domains admin.vs.berticloud.ai \
+    --global
+
+gcloud compute ssl-certificates create enrollment-vs-berticloud-ai-cert \
+    --domains enrollment.vs.berticloud.ai \
+    --global
+
+gcloud compute ssl-certificates create ingest-vs-berticloud-ai-cert \
+    --domains ingest.vs.berticloud.ai \
+    --global
+
+gcloud compute ssl-certificates create webapp-vs-berticloud-ai-cert \
+    --domains console.vs.berticloud.ai \
+    --global
+
+
+# 4. Creare i Serverless Network Endpoint Group (NEG) per i servizi Cloud Run
+# Per admin-service
+gcloud compute network-endpoint-groups create admin-service-neg \
+    --region=$YOUR_REGION \
+    --network-endpoint-type=serverless \
+    --cloud-run-service=admin-service
+
+# Per enrollment-service
+gcloud compute network-endpoint-groups create enrollment-service-neg \
+    --region=$YOUR_REGION \
+    --network-endpoint-type=serverless \
+    --cloud-run-service=enrollment-service
+
+# Per ingest-service
+gcloud compute network-endpoint-groups create ingest-service-neg \
+    --region=$YOUR_REGION \
+    --network-endpoint-type=serverless \
+    --cloud-run-service=ingest-service
+
+# Per webapp-service
+gcloud compute network-endpoint-groups create webapp-service-neg \
+    --region=$YOUR_REGION \
+    --network-endpoint-type=serverless \
+    --cloud-run-service=webapp-service
+
+
+# 5. Creare i servizi di backend per i NEG Serverless
+# Per admin-service
+gcloud compute backend-services create admin-service-backend \
+    --global \
+    --load-balancing-scheme=EXTERNAL_MANAGED
+gcloud compute backend-services add-backend admin-service-backend \
+    --global \
+    --network-endpoint-group=admin-service-neg \
+    --network-endpoint-group-region=$YOUR_REGION
+
+# Per enrollment-service
+gcloud compute backend-services create enrollment-service-backend \
+    --global \
+    --load-balancing-scheme=EXTERNAL_MANAGED
+gcloud compute backend-services add-backend enrollment-service-backend \
+    --global \
+    --network-endpoint-group=enrollment-service-neg \
+    --network-endpoint-group-region=$YOUR_REGION
+
+# Per ingest-service
+gcloud compute backend-services create ingest-service-backend \
+    --global \
+    --load-balancing-scheme=EXTERNAL_MANAGED
+gcloud compute backend-services add-backend ingest-service-backend \
+    --global \
+    --network-endpoint-group=ingest-service-neg \
+    --network-endpoint-group-region=$YOUR_REGION
+
+# Per webapp-service
+gcloud compute backend-services create webapp-service-backend \
+    --global \
+    --load-balancing-scheme=EXTERNAL_MANAGED
+gcloud compute backend-services add-backend webapp-service-backend \
+    --global \
+    --network-endpoint-group=webapp-service-neg \
+    --network-endpoint-group-region=$YOUR_REGION
+
+
+# 6. Creare una URL Map per il routing basato sull'host. dice: "Qualunque cosa arrivi, mandala a ingest-service-backend"
+gcloud compute url-maps create cloudrun-url-map \
+    --default-service=ingest-service-backend \
+    --global
+
+# Aggiungere le regole host per gli altri servizi   
+gcloud compute url-maps add-path-matcher cloudrun-url-map \
+    --path-matcher-name=admin-matcher \
+    --default-service=admin-service-backend \
+    --new-hosts=admin.vs.berticloud.ai \
+    --global
+
+gcloud compute url-maps add-path-matcher cloudrun-url-map \
+    --path-matcher-name=enrollment-matcher \
+    --default-service=enrollment-service-backend \
+    --new-hosts=enrollment.vs.berticloud.ai \
+    --global
+
+gcloud compute url-maps add-path-matcher cloudrun-url-map \
+    --path-matcher-name=webapp-matcher \
+    --default-service=webapp-service-backend \
+    --new-hosts=console.vs.berticloud.ai \
+    --global
+
+
+# 7. Creare il Target HTTPS Proxy
+gcloud compute target-https-proxies create cloudrun-https-proxy \
+    --ssl-certificates=admin-vs-berticloud-ai-cert,enrollment-vs-berticloud-ai-cert,ingest-vs-berticloud-ai-cert,webapp-vs-berticloud-ai-cert \
+    --url-map=cloudrun-url-map \
+    --global
+
+
+# 8. Creare la Forwarding Rule
+gcloud compute forwarding-rules create cloudrun-https-forwarding-rule \
+    --load-balancing-scheme=EXTERNAL_MANAGED \
+    --network-tier=PREMIUM \
+    --address=$YOUR_STATIC_IP_NAME \
+    --target-https-proxy=cloudrun-https-proxy \
+    --global \
+    --ports=443

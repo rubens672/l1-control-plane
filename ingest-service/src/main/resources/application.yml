@@ -26,6 +26,8 @@ spring:
         enabled: true
 
 app:
+  ca:
+    issuingCertSecret: ${sm://projects/383163155925/secrets/CA_ISSUING_CERT_SECRET/versions/1}
   pubsub:
     topic: projects/mosqhealthagent/topics/edge-telemetry
   cache:
