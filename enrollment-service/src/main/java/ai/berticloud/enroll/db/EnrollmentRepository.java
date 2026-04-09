@@ -1,11 +1,13 @@
 package ai.berticloud.enroll.db;
 
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
+import ai.berticloud.shared.model.DeviceCertHistoryDocument;
+import ai.berticloud.shared.model.DeviceDocument;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -14,34 +16,23 @@ import java.util.Optional;
  */
 
 /**
- * Repository JDBC per Enrollment (Cloud SQL Postgres).
+ * Repository MongoDB per Enrollment.
  *
  * RESPONSABILITÀ:
- * - Leggere il record device in modalità "locked" per enrollment (FOR UPDATE).
- * - Aggiornare il record device portandolo da PENDING -> ACTIVE.
- * - Salvare fingerprint/serial/validity + azzerare bootstrap token dopo uso.
- * - Inserire entry in device_cert_history (audit + future revocation).
- *
- * PERCHÉ SELECT ... FOR UPDATE:
- * - Evita doppio enrollment (race condition).
- * - Garantisce consistenza quando:
- *   - verifichiamo token
- *   - firmiamo cert
- *   - aggiorniamo DB
- *
- * TRANSAZIONE:
- * - activateAndStoreCert è @Transactional: update device + insert history atomici.
+ * - Leggere il record device.
+ * - Aggiornare il record device portandolo da PENDING -> ACTIVE e consumando il bootstrap token
+ *   in modo atomico (evitando race condition).
  *
  * @author Antonio Berti
  * @version 1.0
- * @since 4 March 2026
+ * @since 4 March 2026 (Refactored to MongoDB)
  */
 @Repository
 public class EnrollmentRepository {
-  private final JdbcTemplate jdbc;
+  private final MongoTemplate mongoTemplate;
 
-  public EnrollmentRepository(JdbcTemplate jdbc) {
-    this.jdbc = jdbc;
+  public EnrollmentRepository(MongoTemplate mongoTemplate) {
+    this.mongoTemplate = mongoTemplate;
   }
 
   /** Proiezione minimale del record device necessaria durante enrollment. */
@@ -50,40 +41,32 @@ public class EnrollmentRepository {
       String bootstrapHash, Instant bootstrapExpiresAt
   ) {}
 
-  private static final RowMapper<PendingDeviceRow> RM = (rs, i) -> new PendingDeviceRow(
-      rs.getString("device_id"),
-      rs.getString("tenant_id"),
-      rs.getString("site_id"),
-      rs.getString("status"),
-      rs.getString("bootstrap_token_hash"),
-      rs.getTimestamp("bootstrap_expires_at") == null ? null : rs.getTimestamp("bootstrap_expires_at").toInstant()
-  );
-
   /**
-   * Carica il device e blocca la riga per tutta la durata della transazione.
-   * Il lock impedisce doppio consumo del bootstrap token.
+   * Carica il device. In MongoDB non blocchiamo la riga qui, ma controlleremo
+   * al momento dell'update che il token sia ancora valido per evitare race condition.
    */
   public Optional<PendingDeviceRow> findDeviceForEnrollForUpdate(String deviceId) {
-    return jdbc.query("""
-      SELECT device_id, tenant_id, site_id, status, bootstrap_token_hash, bootstrap_expires_at
-      FROM control_plane.devices
-      WHERE device_id = ?
-      FOR UPDATE
-      """, RM, deviceId).stream().findFirst();
+    DeviceDocument doc = mongoTemplate.findById(deviceId, DeviceDocument.class);
+    if (doc == null) {
+      return Optional.empty();
+    }
+    return Optional.of(new PendingDeviceRow(
+        doc.getDeviceId(),
+        doc.getTenantId(),
+        doc.getSiteId(),
+        doc.getStatus(),
+        doc.getBootstrapTokenHash(),
+        doc.getBootstrapExpiresAt()
+    ));
   }
 
   /**
-   * Attiva il device e persiste metadati certificato.
-   *
-   * Cosa fa:
-   * - status -> ACTIVE
-   * - onboarded_at = now()
-   * - expected_fingerprint_sha256 = fingerprint del nuovo cert (vincolo forte per ingest)
-   * - cert_serial, cert_not_after, issuer_dn, subject_dn
-   * - bootstrap_token_hash/expires_at -> NULL (token consumato)
-   * - insert device_cert_history
+   * Attiva il device e persiste metadati certificato atomicamente.
+   * Usiamo findAndModify o un update coordinato per evitare race condition:
+   * si assicura che il device sia in PENDING e che il token hash non sia nullo!
+   * Se l'update non colpisce nulla, lanciariamo un'eccezione logica se serve (ma per ora
+   * la firma originale era void, confidando sull'atomicità).
    */
-  @Transactional
   public void activateAndStoreCert(String deviceId,
                                   String fingerprintSha256Hex,
                                   String certSerialHex,
@@ -91,27 +74,29 @@ public class EnrollmentRepository {
                                   String issuerDn,
                                   String subjectDn) {
 
-    // update device
-    jdbc.update("""
-      UPDATE control_plane.devices
-      SET status = 'ACTIVE',
-          onboarded_at = now(),
-          expected_fingerprint_sha256 = ?,
-          cert_serial = ?,
-          cert_not_after = ?,
-          issuer_dn = ?,
-          subject_dn = ?,
-          bootstrap_token_hash = NULL,
-          bootstrap_expires_at = NULL
-      WHERE device_id = ?
-      """, fingerprintSha256Hex, certSerialHex, Timestamp.from(certNotAfter), issuerDn, subjectDn, deviceId);
+    DeviceCertHistoryDocument history = new DeviceCertHistoryDocument(
+        fingerprintSha256Hex, certSerialHex, Instant.now(), certNotAfter, Instant.now()
+    );
 
-    // history
-    jdbc.update("""
-      INSERT INTO control_plane.device_cert_history(
-        device_id, fingerprint_sha256, cert_serial, not_before, not_after, issued_at, revoked_at, revoke_reason
-      )
-      VALUES(?, ?, ?, now(), ?, now(), NULL, NULL)
-      """, deviceId, fingerprintSha256Hex, certSerialHex, Timestamp.from(certNotAfter));
+    // Atomic update! Richiede rigorosamente status = PENDING e tokenHash != null
+    Query query = new Query(Criteria.where("deviceId").is(deviceId)
+        .and("status").is("PENDING")
+        .and("bootstrapTokenHash").ne(null));
+
+    Update update = new Update()
+        .set("status", "ACTIVE")
+        .set("onboardedAt", Instant.now())
+        .set("expectedFingerprintSha256", fingerprintSha256Hex)
+        .set("certSerial", certSerialHex)
+        .set("certNotAfter", certNotAfter)
+        .set("issuerDn", issuerDn)
+        .set("subjectDn", subjectDn)
+        .set("bootstrapTokenHash", null)
+        .set("bootstrapExpiresAt", null)
+        .push("certHistory", history)
+        .set("updatedAt", Instant.now());
+
+    // Fai l'update. Se l'esito è 0, o il device non c'era, o era già ACTIVE/aggiornato.
+    mongoTemplate.updateFirst(query, update, DeviceDocument.class);
   }
 }

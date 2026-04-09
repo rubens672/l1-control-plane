@@ -11,17 +11,12 @@ spring:
   test:
     database:
       replace: none
-  datasource:
-    url: jdbc:postgresql:///${SUBSCRIPT_MANAGE_DB_SCHEMA}?cloudSqlInstance=${SUBSCRIPT_MANAGE_DB}&socketFactory=com.google.cloud.sql.postgres.SocketFactory
-    username: ${sm://projects/782332691073/secrets/DB_USER/versions/1}
-    password: ${sm://projects/782332691073/secrets/DB_PASSW/versions/1}
-    driver-class-name: org.postgresql.Driver
+  data:
+    mongodb:
+      uri: mongodb://${sm://projects/782332691073/secrets/DB_USER/versions/2}:${sm://projects/782332691073/secrets/DB_PASSW/versions/2}@6b676047-d20d-4f5d-8f4b-f5fe474068b9.us-central1.firestore.goog:443/control-plane-gateway-fb?loadBalanced=true&tls=true&authMechanism=SCRAM-SHA-256&retryWrites=false
 
-  # Disabilita Cloud SQL autoconfigure per i test
   cloud:
     gcp:
-      sql:
-        enabled: false
       secretmanager:
         enabled: true
 
@@ -29,5 +24,5 @@ app:
   bootstrap:
     tokenTtlMinutes: 60
     hmacKeyBase64: ${sm://projects/782332691073/secrets/BOOTSTRAP_HMAC_KEY_BASE64/versions/1}
-    enrollmentUrl: ${ENROLLMENT_URL}
-    telemetryUrl: ${TELEMETRY_URL}
+    enrollmentUrl: ${ENROLLMENT_URL:"https://enrollment.vs.berticloud.ai/v1/enrollments"}
+    telemetryUrl: ${TELEMETRY_URL:"https://ingest.vs.berticloud.ai/v1/telemetry"}
