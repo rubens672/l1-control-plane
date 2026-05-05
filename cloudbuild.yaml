@@ -106,7 +106,6 @@ steps:
       - '${_DEPLOY_REGION}'
       - '--platform'
       - 'managed'
-      - '--no-invoker-iam-check'
       - '--service-account'
       - 'l1-control-plane-sa@mosqhealthagent.iam.gserviceaccount.com'
       - '--set-env-vars'

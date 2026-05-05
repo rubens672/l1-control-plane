@@ -17,7 +17,7 @@ public class WebappApplication {
     }
 
     @Bean
-    public RestTemplate restTemplate(RestTemplateBuilder builder) {
-        return builder.build();
+    public RestTemplate restTemplate(RestTemplateBuilder builder, ai.berticloud.webapp.client.GcpOidcInterceptor interceptor) {
+        return builder.additionalInterceptors(interceptor).build();
     }
 }
