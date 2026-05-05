@@ -109,9 +109,7 @@ steps:
       - '--service-account'
       - 'l1-control-plane-sa@mosqhealthagent.iam.gserviceaccount.com'
       - '--set-env-vars'
-      - 'ENROLLMENT_URL=${_ENROLLMENT_URL},TELEMETRY_URL=${_TELEMETRY_URL},SUBSCRIPT_MANAGE_DB_SCHEMA=${_SUBSCRIPT_MANAGE_DB_SCHEMA},SUBSCRIPT_MANAGE_DB=${_SUBSCRIPT_MANAGE_DB}'
-      - '--add-cloudsql-instances'
-      - '${_SUBSCRIPT_MANAGE_DB}'
+      - 'ENROLLMENT_URL=${_ENROLLMENT_URL},TELEMETRY_URL=${_TELEMETRY_URL}'
     waitFor: ['push-admin']
 
   # Deploy ENROLLMENT-SERVICE
@@ -131,10 +129,7 @@ steps:
       - '--no-invoker-iam-check'
       - '--service-account'
       - 'l1-control-plane-sa@mosqhealthagent.iam.gserviceaccount.com'
-      - '--set-env-vars'
-      - 'SUBSCRIPT_MANAGE_DB_SCHEMA=${_SUBSCRIPT_MANAGE_DB_SCHEMA},SUBSCRIPT_MANAGE_DB=${_SUBSCRIPT_MANAGE_DB}'
-      - '--add-cloudsql-instances'
-      - '${_SUBSCRIPT_MANAGE_DB}'
+
     waitFor: ['push-enrollment']
 
   # Deploy INGEST-SERVICE
@@ -155,10 +150,7 @@ steps:
       - '--no-invoker-iam-check'
       - '--service-account'
       - 'l1-control-plane-sa@mosqhealthagent.iam.gserviceaccount.com'
-      - '--set-env-vars'
-      - 'SUBSCRIPT_MANAGE_DB_SCHEMA=${_SUBSCRIPT_MANAGE_DB_SCHEMA},SUBSCRIPT_MANAGE_DB=${_SUBSCRIPT_MANAGE_DB}'
-      - '--add-cloudsql-instances'
-      - '${_SUBSCRIPT_MANAGE_DB}'
+
     waitFor: ['push-ingest']
 
   # Deploy WEBAPP-SERVICE
@@ -181,15 +173,12 @@ steps:
       - 'l1-control-plane-sa@mosqhealthagent.iam.gserviceaccount.com'
       - '--set-env-vars'
       - 'ADMIN_SERVICE_URL=${_ADMIN_SERVICE_URL}'
-      - '--add-cloudsql-instances'
-      - '${_SUBSCRIPT_MANAGE_DB}'
     waitFor: [ 'push-webapp' ]
 
 substitutions:
   _ENROLLMENT_URL: 'https://enrollment.vs.berticloud.ai/v1/enrollments'
   _TELEMETRY_URL: 'https://ingest.vs.berticloud.ai/v1/telemetry'
-  _SUBSCRIPT_MANAGE_DB: 'mosqhealthagent:europe-west12:control-plan-gateway-db'
-  _SUBSCRIPT_MANAGE_DB_SCHEMA: 'subscript_manage_db'
+
   _DEPLOY_REGION: 'us-central1'
   _ADMIN_SERVICE_URL: 'https://admin.vs.berticloud.ai/v1/admin'
 

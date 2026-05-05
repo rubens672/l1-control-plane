@@ -18,14 +18,8 @@ gcloud auth login --update-adc
 ### settare il project
 gcloud config set project mosqhealthagent
 
-### Scarica il binario cloud-sql-proxy
-curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.21.1/cloud-sql-proxy.linux.amd64
-
-### Rendilo eseguibile
-chmod +x cloud-sql-proxy
-
-### avvio della connessione proxy x Cloud Sql
-./cloud-sql-proxy mosqhealthagent:europe-west12:control-plan-gateway-db --private-ip &
+### [DEPRECATO] Cloud SQL
+Il database è stato migrato su MongoDB (Firestore). Il proxy Cloud SQL non è più necessario e il binario è stato rimosso dal repository.
 
 ### Correzione rapida da shell di clientCertPem
 #### Se il file attuale contiene proprio la stringa JSON-escaped, puoi convertirlo così:
@@ -77,11 +71,9 @@ sed -i 's/\r$//' init_maven.sh
 
 ## Variabili env per Cloud Run (minime)
 
-Tutti i servizi:  
-DB_NAME  
+Tutti i servizi (dove applicabile):
 DB_USER  
-DB_PASS  
-CLOUDSQL_INSTANCE (project:region:instance)  
+DB_PASSW
 
 ingest-service:  
 PUBSUB_TOPIC (nome topic)  
