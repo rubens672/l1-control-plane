@@ -1,21 +1,29 @@
 package ai.berticloud.admin.db;
 
-import org.springframework.jdbc.core.JdbcTemplate;
+import ai.berticloud.shared.model.DeviceDocument;
+import ai.berticloud.shared.model.SiteDocument;
+import ai.berticloud.shared.model.SubscriptionDocument;
+import ai.berticloud.shared.model.TenantDocument;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
-import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import ai.berticloud.admin.api.dto.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.EmptyResultDataAccessException;
 
 /*
  * Copyright (c) 2026 Berti AI & Cloud Architecture. All rights reserved.
  */
 
 /**
- * Repository JDBC per il control-plane DB (Cloud SQL Postgres).
+ * Repository MongoDB per il control-plane DB.
  *
  * RUOLO:
  * - Implementa le operazioni DB necessarie a L1:
@@ -25,211 +33,132 @@ import org.slf4j.LoggerFactory;
  *   - create device (PENDING)
  *   - set bootstrap token hash + expiry sul device
  *
- * PERCHÉ JdbcTemplate:
- * - L1 vuole "ruote su strada": semplicità, trasparenza, zero magia.
- * - Qui stiamo principalmente facendo insert/update semplici e una upsert.
- *
- * NOTE DI INTEGRITÀ:
- * - La validazione di FK/PK è demandata a Postgres (vincoli).
- * - Lo status PENDING→ACTIVE è gestito dall'enrollment-service.
- *
  * @author Antonio Berti
  * @version 1.0
- * @since 4 March 2026
+ * @since 4 March 2026 (Refactored to MongoDB)
  */
 @Repository
 public class AdminRepository {
   private static final Logger log = LoggerFactory.getLogger(AdminRepository.class);
 
-  private final JdbcTemplate jdbc;
+  private final MongoTemplate mongoTemplate;
 
-  public AdminRepository(JdbcTemplate jdbc) {
-    this.jdbc = jdbc;
+  public AdminRepository(MongoTemplate mongoTemplate) {
+    this.mongoTemplate = mongoTemplate;
   }
 
-  /** Crea tenant con status ACTIVE di default (L1). */
   public void createTenant(String tenantId, String name, String plan) {
-    jdbc.update("""
-      INSERT INTO control_plane.tenants(tenant_id, name, status, plan, created_at, updated_at)
-      VALUES(?, ?, 'ACTIVE', ?, now(), now())
-      """, tenantId, name, plan);
+    TenantDocument doc = new TenantDocument(tenantId, name, "ACTIVE", plan, Instant.now(), Instant.now());
+    mongoTemplate.save(doc);
   }
 
-  /**
-   * Crea o aggiorna subscription del tenant.
-   *
-   * NOTE:
-   * - ON CONFLICT(tenant_id): un tenant ha una subscription "corrente" in L1.
-   * - In L2 potresti avere history contratti o più piani.
-   */
   public void upsertSubscription(String tenantId, String status, Instant validFrom, Instant validTo, int maxDevices) {
-    jdbc.update("""
-      INSERT INTO control_plane.subscriptions(tenant_id, status, valid_from, valid_to, max_devices, features, updated_at)
-      VALUES(?, ?, ?, ?, ?, '{}'::jsonb, now())
-      ON CONFLICT (tenant_id)
-      DO UPDATE SET status = EXCLUDED.status, valid_from = EXCLUDED.valid_from, valid_to = EXCLUDED.valid_to,
-                    max_devices = EXCLUDED.max_devices, updated_at = now()
-      """, tenantId, status, Timestamp.from(validFrom), Timestamp.from(validTo), maxDevices);
+    SubscriptionDocument sub = new SubscriptionDocument(status, validFrom, validTo, maxDevices, Instant.now());
+    Query query = new Query(Criteria.where("tenantId").is(tenantId));
+    Update update = new Update().set("subscription", sub).set("updatedAt", Instant.now());
+    mongoTemplate.upsert(query, update, TenantDocument.class);
   }
 
-  /** Crea site collegato a tenant. */
   public void createSite(String siteId, String tenantId, String name, String timezone, String status) {
-    jdbc.update("""
-      INSERT INTO control_plane.sites(site_id, tenant_id, name, timezone, status, created_at)
-      VALUES(?, ?, ?, ?, ?, now())
-      """, siteId, tenantId, name, timezone, status == null ? "ACTIVE" : status);
+    SiteDocument site = new SiteDocument(siteId, name, timezone, status == null ? "ACTIVE" : status, Instant.now());
+    Query query = new Query(Criteria.where("tenantId").is(tenantId));
+    Update update = new Update().push("sites", site).set("updatedAt", Instant.now());
+    mongoTemplate.updateFirst(query, update, TenantDocument.class);
   }
 
-  /**
-   * Registra un device nel control-plane in stato PENDING.
-   *
-   * PERCHÉ PENDING:
-   * - Il device non ha ancora un certificato client firmato.
-   * - Finché non completa enrollment CSR, non può inviare telemetria (ingest rifiuta).
-   */
   public void createDevicePending(String deviceId, String tenantId, String siteId, String model) {
-    jdbc.update("""
-      INSERT INTO control_plane.devices(
-        device_id, tenant_id, site_id, status, model, onboarded_at, last_seen_at,
-        max_msgs_per_min, expected_fingerprint_sha256, cert_serial, cert_not_after,
-        issuer_dn, subject_dn, bootstrap_token_hash, bootstrap_expires_at, created_at, updated_at
-      )
-      VALUES(?, (SELECT tenant_id FROM control_plane.sites WHERE site_id = ?), ?, 'PENDING', ?, NULL, NULL, 60, NULL, NULL, NULL, NULL, NULL, NULL, NULL, now(), now())
-      """, deviceId, siteId, siteId, model);
+    DeviceDocument doc = new DeviceDocument(deviceId, tenantId, siteId, "PENDING", model, Instant.now(), Instant.now());
+    doc.setMaxMsgsPerMin(60);
+    mongoTemplate.insert(doc);
   }
 
   public int deleteDeviceById(String deviceId) {
-    int deletedRows = jdbc.update("""
-    DELETE FROM control_plane.devices
-    WHERE device_id = ?
-    """, deviceId);
-    log.debug("Deleted {} rows for device: {}", deletedRows, deviceId);
-    return deletedRows;
+    Query query = new Query(Criteria.where("deviceId").is(deviceId));
+    long deletedCount = mongoTemplate.remove(query, DeviceDocument.class).getDeletedCount();
+    log.debug("Deleted {} rows for device: {}", deletedCount, deviceId);
+    return (int) deletedCount;
   }
 
   public int deleteSiteById(String siteId) {
-    int deletedRows = jdbc.update("""
-    DELETE FROM control_plane.sites
-    WHERE site_id = ?
-    """, siteId);
-    log.debug("Deleted {} rows for site: {}", deletedRows, siteId);
-    return deletedRows;
+    Query query = new Query(Criteria.where("sites.siteId").is(siteId));
+    Update update = new Update().pull("sites", Query.query(Criteria.where("siteId").is(siteId)));
+    long updatedCount = mongoTemplate.updateMulti(query, update, TenantDocument.class).getModifiedCount();
+    log.debug("Deleted {} rows for site: {}", updatedCount, siteId);
+    return (int) updatedCount;
   }
 
   public int deleteSubscriptionById(String tenantId) {
-    int updatedRows = jdbc.update("""
-    UPDATE control_plane.subscriptions
-    SET status = 'CANCELED', updated_at = now()
-    WHERE tenant_id = ?
-    """, tenantId);
-    log.debug("Canceled {} subscription for tenant: {}", updatedRows, tenantId);
-    return updatedRows;
+    Query query = new Query(Criteria.where("tenantId").is(tenantId));
+    Update update = new Update().set("subscription.status", "CANCELED").set("updatedAt", Instant.now());
+    long modifiedCount = mongoTemplate.updateFirst(query, update, TenantDocument.class).getModifiedCount();
+    log.debug("Canceled {} subscription for tenant: {}", modifiedCount, tenantId);
+    return (int) modifiedCount;
   }
 
   public int deleteTenantById(String tenantId) {
-    int updatedRows = jdbc.update("""
-    UPDATE control_plane.tenants
-    SET status = 'INACTIVE', updated_at = now()
-    WHERE tenant_id = ?
-    """, tenantId);
-    log.debug("Suspended {} tenant: {}", updatedRows, tenantId);
-    return updatedRows;
+    Query query = new Query(Criteria.where("tenantId").is(tenantId));
+    Update update = new Update().set("status", "INACTIVE").set("updatedAt", Instant.now());
+    long modifiedCount = mongoTemplate.updateFirst(query, update, TenantDocument.class).getModifiedCount();
+    log.debug("Suspended {} tenant: {}", modifiedCount, tenantId);
+    return (int) modifiedCount;
   }
 
-  /**
-   * Dato un deviceId, ritorni tenantId e siteId.
-   *
-   * questa lancia eccezione se non trova nulla (EmptyResultDataAccessException)
-   */
   public DeviceTenantSite findTenantAndSiteByDeviceId(String deviceId) {
-    String sql = """
-    SELECT tenant_id, site_id
-    FROM control_plane.devices
-    WHERE device_id = ?
-    """;
-
-    return jdbc.queryForObject(sql,
-            (rs, rowNum) -> new DeviceTenantSite(
-                    rs.getString("tenant_id"),
-                    rs.getString("site_id")
-            ),
-            deviceId
-    );
+    Query query = new Query(Criteria.where("deviceId").is(deviceId));
+    query.fields().include("tenantId", "siteId");
+    DeviceDocument doc = mongoTemplate.findOne(query, DeviceDocument.class);
+    if (doc == null) {
+      throw new EmptyResultDataAccessException(1);
+    }
+    return new DeviceTenantSite(doc.getTenantId(), doc.getSiteId());
   }
 
-  /**
-   * Salva bootstrap token (hash + expiry) sul record device PENDING.
-   *
-   * INPUT:
-   * - tokenHashHex: HMAC(tokenPlain)
-   * - expiresAt: scadenza token
-   *
-   * NOTE DI SICUREZZA:
-   * - tokenPlain NON è persistito, solo hash.
-   * - Condizione status='PENDING' evita rigenerazione su device già attivi (policy L1).
-   */
   public void setBootstrapToken(String deviceId, String tokenHashHex, Instant expiresAt) {
-    jdbc.update("""
-      UPDATE control_plane.devices
-      SET bootstrap_token_hash = ?, bootstrap_expires_at = ?
-      WHERE device_id = ? AND status = 'PENDING'
-      """, tokenHashHex, Timestamp.from(expiresAt), deviceId);
+    Query query = new Query(Criteria.where("deviceId").is(deviceId).and("status").is("PENDING"));
+    Update update = new Update()
+        .set("bootstrapTokenHash", tokenHashHex)
+        .set("bootstrapExpiresAt", expiresAt)
+        .set("updatedAt", Instant.now());
+    mongoTemplate.updateFirst(query, update, DeviceDocument.class);
   }
 
   public List<TenantResponse> findAllTenants() {
-    return jdbc.query("""
-      SELECT tenant_id, name, status, plan, created_at, updated_at
-      FROM control_plane.tenants
-      ORDER BY created_at DESC
-      """,
-      (rs, rowNum) -> new TenantResponse(
-        rs.getString("tenant_id"),
-        rs.getString("name"),
-        rs.getString("status"),
-        rs.getString("plan"),
-        rs.getTimestamp("created_at").toInstant(),
-        rs.getTimestamp("updated_at").toInstant()
-      )
-    );
+    return mongoTemplate.findAll(TenantDocument.class).stream()
+        .map(t -> new TenantResponse(
+            t.getTenantId(),
+            t.getName(),
+            t.getStatus(),
+            t.getPlan(),
+            t.getCreatedAt(),
+            t.getUpdatedAt()
+        )).toList();
   }
 
   public List<SiteResponse> findSitesByTenant(String tenantId) {
-    return jdbc.query("""
-      SELECT site_id, tenant_id, name, timezone, status, created_at
-      FROM control_plane.sites
-      WHERE tenant_id = ?
-      ORDER BY created_at DESC
-      """,
-      (rs, rowNum) -> new SiteResponse(
-        rs.getString("site_id"),
-        rs.getString("tenant_id"),
-        rs.getString("name"),
-        rs.getString("timezone"),
-        rs.getString("status"),
-        rs.getTimestamp("created_at").toInstant()
-      ),
-      tenantId
-    );
+    TenantDocument tenant = mongoTemplate.findById(tenantId, TenantDocument.class);
+    if (tenant == null || tenant.getSites() == null) return Collections.emptyList();
+    
+    return tenant.getSites().stream().map(s -> new SiteResponse(
+        s.getSiteId(),
+        tenantId,
+        s.getName(),
+        s.getTimezone(),
+        s.getStatus(),
+        s.getCreatedAt()
+    )).toList();
   }
 
   public List<DeviceResponse> findDevicesBySite(String siteId) {
-    return jdbc.query("""
-      SELECT device_id, tenant_id, site_id, status, model, max_msgs_per_min, created_at
-      FROM control_plane.devices
-      WHERE site_id = ?
-      ORDER BY created_at DESC
-      """,
-      (rs, rowNum) -> new DeviceResponse(
-        rs.getString("device_id"),
-        rs.getString("tenant_id"),
-        rs.getString("site_id"),
-        rs.getString("status"),
-        rs.getString("model"),
-        rs.getInt("max_msgs_per_min"),
-        rs.getTimestamp("created_at").toInstant()
-      ),
-      siteId
-    );
+    Query query = new Query(Criteria.where("siteId").is(siteId));
+    return mongoTemplate.find(query, DeviceDocument.class).stream().map(d -> new DeviceResponse(
+        d.getDeviceId(),
+        d.getTenantId(),
+        d.getSiteId(),
+        d.getStatus(),
+        d.getModel(),
+        d.getMaxMsgsPerMin(),
+        d.getCreatedAt()
+    )).toList();
   }
 
   public record DeviceTenantSite(String tenantId, String siteId) {}

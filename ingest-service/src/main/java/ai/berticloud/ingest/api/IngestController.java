@@ -4,8 +4,8 @@ import ai.berticloud.ingest.auth.AuthzService;
 import ai.berticloud.ingest.db.AuthzRepository;
 import ai.berticloud.shared.identity.DeviceIdentity;
 import ai.berticloud.shared.identity.SanUriParser;
-import ai.berticloud.shared.identity.SanUriSelector;
-import ai.berticloud.shared.security.MtlsHeaders;
+import ai.berticloud.ingest.auth.DeviceAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.spring.pubsub.core.PubSubTemplate;
@@ -86,21 +86,15 @@ public class IngestController {
     try {
       log.debug("Received telemetry request");
 
-      // 1) Guardrail mTLS: se LB non ha validato il client cert, non accettiamo la richiesta.
-      boolean present = MtlsHeaders.isTrue(MtlsHeaders.getIgnoreCase(headers, MtlsHeaders.PRESENT));
-      boolean verified = MtlsHeaders.isTrue(MtlsHeaders.getIgnoreCase(headers, MtlsHeaders.VERIFIED));
-      if (!present || !verified) {
+      // 1) Identity è già validata crittograficamente da MtlsHeaderFilter e presente nel SecurityContext
+      DeviceAuthenticationToken auth = (DeviceAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+      if (auth == null || !auth.isAuthenticated()) {
           log.warn("mTLS missing or not verified. Rejecting request.");
           return ResponseEntity.status(401).body(Map.of("error","mtls_required"));
       }
-
-      // 2) Estraiamo fingerprint + SANs dal header (iniettati dal LB).
-      String fp = MtlsHeaders.getIgnoreCase(headers, MtlsHeaders.FP_SHA256);
-      String sansHeader = MtlsHeaders.getIgnoreCase(headers, MtlsHeaders.URI_SANS);
-
-      // 3) Seleziona la SAN URI "nostra" e parsala in tenant/site/device.
-      String deviceUrn = SanUriSelector.pickDeviceUrn(sansHeader);
-      DeviceIdentity id = SanUriParser.parse(deviceUrn);
+      
+      DeviceIdentity id = auth.getDeviceIdentity();
+      String fp = auth.getFingerprint();
 
       // 4) Parse JSON: serve per (a) reject mismatch e (b) estrarre eventType/schemaVersion per attributi Pub/Sub.
       JsonNode root = om.readTree(body);

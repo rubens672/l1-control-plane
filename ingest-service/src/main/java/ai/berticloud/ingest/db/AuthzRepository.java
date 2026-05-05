@@ -1,7 +1,13 @@
 package ai.berticloud.ingest.db;
 
 import ai.berticloud.ingest.auth.DeviceAuthContext;
-import org.springframework.jdbc.core.JdbcTemplate;
+import ai.berticloud.shared.model.DeviceDocument;
+import ai.berticloud.shared.model.SiteDocument;
+import ai.berticloud.shared.model.TenantDocument;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -12,85 +18,91 @@ import java.util.Optional;
  */
 
 /**
- * Accesso dati Cloud SQL (Postgres) per l'ingest-service.
+ * Accesso dati (MongoDB) per l'ingest-service.
  *
  * RUOLO:
- * - Carica dal control-plane DB il contesto autorizzativo (join tenant/site/subscription/device).
+ * - Carica dal control-plane DB il contesto autorizzativo (Tenant, Site, Subscription, Device).
  * - Aggiorna last_seen_at per health/monitoring e reporting "device alive".
  *
  * DESIGN:
- * - Una singola query "join" produce DeviceAuthContext.
- * - Questa query viene usata SOLO su cache miss (hot-path ottimizzato).
- *
- * NOTE:
- * - Schema atteso: control_plane.devices/tenants/sites/subscriptions
- * - In L1 usiamo JdbcTemplate per semplicità (niente JPA).
+ * - Le letture avvengono su Device e Tenant (che include aggregati Sub e Sites).
+ * - Queste query multiple sono estremamente veloci rispetto a join e avvengono
+ *   comunque solo su cache miss.
  *
  * @author Antonio Berti
  * @version 1.0
- * @since 4 March 2026
+ * @since 4 March 2026 (Refactored to MongoDB)
  */
 @Repository
 public class AuthzRepository {
-  private final JdbcTemplate jdbc;
+  private final MongoTemplate mongoTemplate;
 
-  public AuthzRepository(JdbcTemplate jdbc) {
-    this.jdbc = jdbc;
+  public AuthzRepository(MongoTemplate mongoTemplate) {
+    this.mongoTemplate = mongoTemplate;
   }
 
   /**
    * Carica il contesto authz per un device (tenant/site/device) come "source of truth".
-   *
-   * IMPORTANT:
-   * - Noi riceviamo tenant/site/device dal SAN del certificato (trusted boundary).
-   * - Qui verifichiamo che esista una riga device coerente con quell'identità.
    */
   public Optional<DeviceAuthContext> loadAuthContext(String tenantId, String siteId, String deviceId) {
-    String sql = """
-      SELECT
-        d.device_id,
-        d.tenant_id,
-        d.site_id,
-        t.status AS tenant_status,
-        s.status AS site_status,
-        d.status AS device_status,
-        sub.status AS subscription_status,
-        sub.valid_to AS subscription_valid_to,
-        d.expected_fingerprint_sha256,
-        d.max_msgs_per_min
-      FROM control_plane.devices d
-      JOIN control_plane.tenants t ON t.tenant_id = d.tenant_id
-      JOIN control_plane.sites s ON s.site_id = d.site_id
-      JOIN control_plane.subscriptions sub ON sub.tenant_id = d.tenant_id
-      WHERE d.device_id = ? AND d.tenant_id = ? AND d.site_id = ?
-      """;
+    // 1. Leggi dispositivo
+    Query deviceQuery = new Query(Criteria.where("_id").is(deviceId)
+        .and("tenantId").is(tenantId)
+        .and("siteId").is(siteId));
+    DeviceDocument device = mongoTemplate.findOne(deviceQuery, DeviceDocument.class);
 
-    return jdbc.query(sql, rs -> {
-      if (!rs.next()) return Optional.empty();
-      Instant validTo = rs.getTimestamp("subscription_valid_to").toInstant();
-      return Optional.of(new DeviceAuthContext(
-          rs.getString("tenant_id"),
-          rs.getString("site_id"),
-          rs.getString("device_id"),
-          rs.getString("tenant_status"),
-          rs.getString("site_status"),
-          rs.getString("device_status"),
-          rs.getString("subscription_status"),
-          validTo,
-          rs.getString("expected_fingerprint_sha256"),
-          rs.getInt("max_msgs_per_min")
-      ));
-    }, deviceId, tenantId, siteId);
+    if (device == null) {
+      return Optional.empty();
+    }
+
+    // 2. Leggi tenant (contiene subscription e sites)
+    TenantDocument tenant = mongoTemplate.findById(tenantId, TenantDocument.class);
+
+    if (tenant == null) {
+      return Optional.empty();
+    }
+
+    // 3. Estrai sito
+    String siteStatus = null;
+    if (tenant.getSites() != null) {
+      for (SiteDocument s : tenant.getSites()) {
+        if (s.getSiteId().equals(siteId)) {
+          siteStatus = s.getStatus();
+          break;
+        }
+      }
+    }
+    if (siteStatus == null) return Optional.empty();
+
+    // 4. Estrai subscription
+    String subStatus = "INACTIVE";
+    Instant validTo = null;
+    if (tenant.getSubscription() != null) {
+      subStatus = tenant.getSubscription().getStatus();
+      validTo = tenant.getSubscription().getValidTo();
+    }
+
+    // Costruisci il costesto
+    return Optional.of(new DeviceAuthContext(
+        tenant.getTenantId(),
+        siteId,
+        device.getDeviceId(),
+        tenant.getStatus(),
+        siteStatus,
+        device.getStatus(),
+        subStatus,
+        validTo,
+        device.getExpectedFingerprintSha256(),
+        device.getMaxMsgsPerMin()
+    ));
   }
 
   /**
    * Aggiorna last_seen_at in modo best-effort.
-   * Serve a:
-   * - dashboard cliente
-   * - troubleshooting
-   * - SLA/monitoring base
    */
   public void touchLastSeen(String deviceId) {
-    jdbc.update("UPDATE control_plane.devices SET last_seen_at = now() WHERE device_id = ?", deviceId);
+    Query query = new Query(Criteria.where("_id").is(deviceId));
+    Update update = new Update().set("lastSeenAt", Instant.now());
+    mongoTemplate.updateFirst(query, update, DeviceDocument.class);
   }
 }
